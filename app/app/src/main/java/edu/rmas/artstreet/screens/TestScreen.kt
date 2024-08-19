@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +40,7 @@ fun TestScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ColorPalette.BackgroundMain),
+            .background(ColorPalette.BackgroundMainLighter),
         contentAlignment = Alignment.Center
     ) {
         Column(

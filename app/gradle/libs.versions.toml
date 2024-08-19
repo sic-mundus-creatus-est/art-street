@@ -15,6 +15,9 @@ firebaseStorage = "21.0.0"
 navigationCompose = "2.7.7"
 foundationAndroid = "1.6.8"
 material3Android = "1.2.1"
+firebaseCrashlyticsBuildtools = "3.0.2"
+uiToolingPreviewAndroid = "1.6.8"
+uiTooling = "1.6.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,6 +34,9 @@ firebase-storage = { group = "com.google.firebase", name = "firebase-storage", v
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
+firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
+androidx-ui-tooling-preview-android = { group = "androidx.compose.ui", name = "ui-tooling-preview-android", version.ref = "uiToolingPreviewAndroid" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "uiTooling" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import edu.rmas.artstreet.app_navigation.Routes
@@ -116,7 +115,6 @@ fun SignInScreen ( authVM: AuthVM?, navController: NavController)
             CopyrightText(
                 year = 2024,
                 owner = "18859",
-                textColor = Color.White,
                 modifier = Modifier
                     .align(Alignment.End)
                     .align(Alignment.CenterHorizontally)
@@ -152,15 +150,15 @@ fun SignInScreen ( authVM: AuthVM?, navController: NavController)
                 is Resource.Success -> {
                     isLoading.value = false
                     LaunchedEffect(Unit) {
-                        navController.navigate(Routes.testScreen) {
-                            popUpTo(Routes.testScreen) {
+                        navController.navigate(Routes.mapScreen) {
+                            popUpTo(Routes.mapScreen) {
                                 inclusive = true
                             }
                         }
                     }
                 }
 
-                is Resource.loading -> {}
+                is Resource.Loading -> {}
                 null -> {}
             }
         }

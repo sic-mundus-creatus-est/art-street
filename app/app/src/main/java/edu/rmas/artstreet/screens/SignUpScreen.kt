@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import edu.rmas.artstreet.app_navigation.Routes
@@ -184,7 +183,6 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
             CopyrightText(
                 year = 2024,
                 owner = "18859",
-                textColor = Color.White,
                 modifier = Modifier
                     .align(Alignment.End)
                     .align(Alignment.CenterHorizontally)
@@ -236,7 +234,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
                         }
                     }
                 }
-                is Resource.loading -> { }
+                is Resource.Loading -> { }
 
                 null -> Log.d("SignUpScreen", "SignUp flow doesn't exist!")
             }

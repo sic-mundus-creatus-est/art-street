@@ -47,13 +47,13 @@ class AuthVM() : ViewModel()
     }
 
     fun signIn(email: String, password: String) = viewModelScope.launch{
-        _signInFlow.value = Resource.loading
+        _signInFlow.value = Resource.Loading
         val result = repo.signIn(email, password)
         _signInFlow.value = result
     }
 
     fun signUp(fullName: String, phoneNumber: String, profileImage: Uri, email: String, password: String) = viewModelScope.launch {
-        _signUpFlow.value = Resource.loading
+        _signUpFlow.value = Resource.Loading
         val result = repo.signUp(fullName, phoneNumber, profileImage, email, password)
         _signUpFlow.value = result
     }

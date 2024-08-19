@@ -1,6 +1,7 @@
 package edu.rmas.artstreet.data.services
 
 import com.google.firebase.firestore.FirebaseFirestore
+import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import kotlinx.coroutines.tasks.await
@@ -46,6 +47,18 @@ class DatabaseService( private val firestore: FirebaseFirestore)
 
         }
         catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Failure(e)
+        }
+    }
+
+    suspend fun saveArtworkData(
+        artwork: Artwork
+    ): Resource<String>{
+        return try{
+            firestore.collection("artworks").add(artwork).await()
+            Resource.Success("[INFO] Successfully saved artwork data. (Artwork ID: ${artwork.id}, Capturer ID: ${artwork.capturerId})")
+        }catch(e: Exception){
             e.printStackTrace()
             Resource.Failure(e)
         }
