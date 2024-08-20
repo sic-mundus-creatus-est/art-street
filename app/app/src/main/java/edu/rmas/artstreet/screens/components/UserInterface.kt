@@ -599,7 +599,7 @@ fun MultilineInputField(
                 cursorColor = MaterialTheme.colorScheme.primary,
             ),
             keyboardOptions = KeyboardOptions.Default,
-            maxLines = 5,
+            maxLines = 10,
             shape = RectangleShape,
         )
     }
@@ -1213,7 +1213,7 @@ fun ProfilePicture(
         .fillMaxWidth()
         .padding(top = 20.dp), contentAlignment = Alignment.Center){
         Row {
-            AsyncImage(
+            AsyncImage (
                 model = imageUrl,
                 contentDescription = "profile_picture",
                 modifier = Modifier
@@ -1490,7 +1490,7 @@ fun ArtworkGalleryShowcase(
 
 
 @Composable
-fun ArtworkRow(
+fun ArtFeedPost (
     artwork: Artwork,
     artworkScreen: () -> Unit,
     artworkOnMap: () -> Unit
@@ -1498,7 +1498,7 @@ fun ArtworkRow(
     // State to control the expanded/collapsed state of the description
     var isDescriptionExpanded by remember { mutableStateOf(false) }
 
-    Column(
+    Column (
         modifier = Modifier
             .fillMaxWidth()
             .background(
@@ -1509,18 +1509,18 @@ fun ArtworkRow(
             .padding(12.dp)
     ) {
         // Image section - Full width
-        Box(
+        Box (
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp)  // Adjust height as needed
+                .height(250.dp)
         ) {
-            AsyncImage(
-                model = artwork.primaryImage,
+            AsyncImage (
+                model = artwork.galleryImages[0],
                 contentDescription = "",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(4.dp))
             )
         }
 
@@ -1554,13 +1554,19 @@ fun ArtworkRow(
             )
         }
         HorizontalDivider()
+
         // Description text with expand/collapse functionality
         Text(
-            text = if (isDescriptionExpanded) artwork.description else {
+            text = if (isDescriptionExpanded) {
+                artwork.description.replace('+', ' ')
+            } else {
                 val maxVisibleChars = 100
-                if (artwork.description.length > maxVisibleChars) {
+
+                if (artwork.description.length > maxVisibleChars)
+                {
                     artwork.description.substring(0, maxVisibleChars).replace('+', ' ') + "..."
-                } else {
+                }
+                else {
                     artwork.description.replace('+', ' ')
                 }
             },
@@ -1570,6 +1576,7 @@ fun ArtworkRow(
             ),
             modifier = Modifier.padding(top = 4.dp)
         )
+
         // "Read more" clickable text
         if (artwork.description.length > 100 && !isDescriptionExpanded) {
             Text(
