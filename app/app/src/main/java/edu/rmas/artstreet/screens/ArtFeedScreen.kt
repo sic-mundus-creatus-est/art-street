@@ -83,7 +83,7 @@ fun ArtFeedScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ColorPalette.BackgroundMainLighter)
+                .background(ColorPalette.BackgroundMainEvenDarker)
                 .align(Alignment.TopCenter)
                 .padding(horizontal = 10.dp)
                 .padding(top = 10.dp, bottom = 10.dp)

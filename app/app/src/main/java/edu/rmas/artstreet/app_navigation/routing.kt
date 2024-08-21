@@ -161,35 +161,7 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
             // get ratings here
 
             ArtworkScreen (
-                navController = navController,
-                artworkVM = artworkVM,
-                authVM = authVM,
                 artwork = artwork,
-                artworks = null
-            )
-        }
-        composable(
-            route = Routes.artworkScreen + "/{artwork}/{artworks}",
-            arguments = listOf(
-                navArgument("artwork"){ type = NavType.StringType },
-                navArgument("artworks"){ type = NavType.StringType },
-            )
-        ){
-                backStackEntry ->
-            val artworkJson = backStackEntry.arguments?.getString("artwork")
-            val artwork = Gson().fromJson(artworkJson, Artwork::class.java)
-
-            val artworksJson = backStackEntry.arguments?.getString("artworks")
-            val artworks = Gson().fromJson(artworksJson, Array<Artwork>::class.java).toList()
-
-            // get ratings here
-
-            ArtworkScreen (
-                navController = navController,
-                artworkVM = artworkVM,
-                authVM = authVM,
-                artwork = artwork,
-                artworks = artworks.toMutableList()
             )
         }
     //-----------------------------------------------------------------------------

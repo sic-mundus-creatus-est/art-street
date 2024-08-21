@@ -36,13 +36,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DoNotDisturb
 import androidx.compose.material.icons.filled.LocationOn
@@ -73,7 +74,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -95,8 +95,12 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
@@ -118,11 +122,11 @@ import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 @Composable
-fun Header(header_text: String)
+fun Header(header_text: String, color: Color = ColorPalette.Yellow)
 {
     Text(modifier = Modifier.width(250.dp),
     text = header_text,
-        color = ColorPalette.Yellow,
+        color = color,
     fontSize = 34.sp,
     fontWeight = FontWeight.Bold)
 }
@@ -139,10 +143,28 @@ fun Secondary(secondary_text: String)
         fontStyle = FontStyle.Italic,
         textAlign = TextAlign.End
     ),
-        modifier = Modifier.fillMaxWidth().padding(start = 17.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 17.dp),
         text = secondary_text
     )
 }
+
+
+@Composable
+fun TheDivider(
+    color: Color = ColorPalette.Yellow, // Default color
+    thickness: Dp = 2.dp // Default thickness
+) {
+    Divider(
+        color = color,
+        thickness = thickness,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    )
+}
+
 
 @Composable
 fun InputFieldLabel(label: String)
@@ -155,6 +177,7 @@ fun InputFieldLabel(label: String)
         text = label
     )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -687,7 +710,10 @@ fun ArtworkGalleryUploadField(
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
                             .size(24.dp)
-                            .clickable { selectedImages.value = selectedImages.value.toMutableList().apply { remove(uri) } }
+                            .clickable { selectedImages.value = selectedImages.value
+                                .toMutableList()
+                                .apply { remove(uri) }
+                            }
                     )
                 }
             }
@@ -932,12 +958,7 @@ fun ArtworkMarker(
                     StandardCharsets.UTF_8.toString()
                 )
 
-            val artworksJson = Gson().toJson(artworksMarkers)
-            val encodedArtworksJson = URLEncoder.encode (
-                artworksJson,
-                StandardCharsets.UTF_8.toString()
-            )
-            navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson/$encodedArtworksJson")
+            navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson")
             true
         }
     )
@@ -1059,7 +1080,10 @@ fun SearchBar(
                                             ColorPalette.BackgroundMainDarker,
                                             shape = RoundedCornerShape(1.dp)
                                         )
-                                        .background(color = ColorPalette.White, shape = RoundedCornerShape(1.dp)),
+                                        .background(
+                                            color = ColorPalette.White,
+                                            shape = RoundedCornerShape(1.dp)
+                                        ),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AsyncImage(
@@ -1320,37 +1344,33 @@ fun PhotosSection(
 fun PrimaryArtworkPhoto(
     imageUrl: String,
 ){
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .padding(top = 20.dp), contentAlignment = Alignment.Center){
-        Box(
-            contentAlignment = Alignment.TopEnd
-        ){
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "",
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(200.dp)
-                    .border(
-                        1.dp,
-                        Color.Gray,
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .shadow(
-                        6.dp,
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .clip(shape = RoundedCornerShape(24.dp)),
-                contentScale = ContentScale.Crop
-            )
-        }
-
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 14.dp,
+                shape = RectangleShape,
+                clip = false,
+                spotColor = Color.Black,
+                ambientColor = Color.Gray,
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(270.dp)
+                .clip(RectangleShape),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 
+
 @Composable
-fun LocationView(
+fun LocationTag(
     location: LatLng,
     context: Context
 ) {
@@ -1365,13 +1385,14 @@ fun LocationView(
             val streetName = address.thoroughfare ?: ""
             val locality = address.locality ?: ""
             val country = address.countryName ?: ""
-            "$streetName $streetNumber, $locality, $country" // Street number, street name, city, and country
+            "$streetName $streetNumber, $locality, $country"
         } else {
             "Unknown location"
         }
     }
 
     Row(
+        modifier = Modifier.padding(start = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -1382,9 +1403,10 @@ fun LocationView(
 
         Text(
             style = TextStyle(
-                color = ColorPalette.Yellow,
+                color = ColorPalette.LightGray,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
+                fontStyle = FontStyle.Italic,
                 textAlign = TextAlign.Center
             ),
             text = addressText
@@ -1392,43 +1414,120 @@ fun LocationView(
     }
 }
 
+@Composable
+fun ArtworkDescription(description: String) {
+    var isDescriptionExpanded by remember { mutableStateOf(false) }
+
+    val annotatedText = buildAnnotatedString {
+        if (isDescriptionExpanded) {
+            // Full description when expanded
+            withStyle(style = SpanStyle(color = ColorPalette.LightGray, fontSize = 14.sp)) {
+                append(description.replace('+', ' '))
+            }
+        } else {
+            // Truncated description with "Read more"
+            withStyle(style = SpanStyle(color = ColorPalette.LightGray, fontSize = 14.sp)) {
+                append(description.take(100).replace('+', ' ') + "...")
+            }
+            withStyle(style = SpanStyle(color = ColorPalette.Blue, fontSize = 14.sp)) {
+                pushStringAnnotation(tag = "TOGGLE", annotation = "TOGGLE")
+                append(" Read more")
+                pop()
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        ClickableText(
+            text = annotatedText,
+            onClick = { offset ->
+                annotatedText.getStringAnnotations(tag = "TOGGLE", start = offset, end = offset)
+                    .firstOrNull()?.let {
+                        isDescriptionExpanded = !isDescriptionExpanded
+                    } ?: run {
+                    if (isDescriptionExpanded) {
+                        isDescriptionExpanded = false
+                    }
+                }
+            },
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+
+
+
+
+
+
+
 
 @Composable
-fun ArtworkGalleryShowcase(
-    images: List<String>
-) {
+fun ArtworkPhotoGrid(images: List<String> )
+{
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        for (index in images.indices step 2) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .background(color = ColorPalette.BackgroundMainDarker))
+    {
+        Spacer(modifier = Modifier.height(5.dp))
+
+        for (index in images.indices step 3)
+        { // step  3 to primarily show three images per row
             Row(modifier = Modifier.fillMaxWidth()) {
-                AsyncImage(
+                val remainingImages = images.size - index
+
+                // First image
+                AsyncImage (
                     model = images[index],
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(170.dp)
+                        .weight(1f) // distributes available width equally
+                        .aspectRatio(1f) // keeps the images square
                         .clickable { selectedIndex = index }
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                if(remainingImages != 1) {
+                    Spacer(modifier = Modifier.width(5.dp))
+                }
+
+                // Second image
                 if (index + 1 < images.size) {
                     AsyncImage(
                         model = images[index + 1],
                         contentDescription = "",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(170.dp)
+                            .weight(1f)
+                            .aspectRatio(1f)
                             .clickable { selectedIndex = index + 1 }
+                    )
+                    if(remainingImages != 1 && remainingImages != 2) {
+                        Spacer(modifier = Modifier.width(5.dp))
+                    }
+                }
+
+                // Third image
+                if (index + 2 < images.size) {
+                    AsyncImage(
+                        model = images[index + 2],
+                        contentDescription = "",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clickable { selectedIndex = index + 2 }
                     )
                 }
             }
             Spacer(modifier = Modifier.height(5.dp))
         }
+        Spacer(modifier = Modifier.weight(1f))
     }
 
-    // Full-screen image viewer with transparent background
+    // Image viewer
     if (selectedIndex != null) {
         Dialog(
             onDismissRequest = { selectedIndex = null }
@@ -1436,15 +1535,12 @@ fun ArtworkGalleryShowcase(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .wrapContentSize() // Ensures the Box is only as large as the content
+                    .wrapContentSize()
             ) {
-                // Display the selected image
                 AsyncImage(
                     model = images[selectedIndex!!],
                     contentDescription = "Full Size Image",
-                    contentScale = ContentScale.Fit, // Ensures the image fits within the available space
-                    modifier = Modifier
-                        .clickable { selectedIndex = null } // Dismiss when the image itself is clicked
+                    contentScale = ContentScale.Fit,
                 )
 
                 // Left navigation button
@@ -1456,7 +1552,7 @@ fun ArtworkGalleryShowcase(
                             .padding(start = 16.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Previous Image",
                             tint = Color.White,
                             modifier = Modifier.size(48.dp)
@@ -1473,7 +1569,7 @@ fun ArtworkGalleryShowcase(
                             .padding(end = 16.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Next Image",
                             tint = Color.White,
                             modifier = Modifier.size(48.dp)
@@ -1508,7 +1604,6 @@ fun ArtFeedPost (
             .clickable { artworkScreen() }
             .padding(12.dp)
     ) {
-        // Image section - Full width
         Box (
             modifier = Modifier
                 .fillMaxWidth()
@@ -1545,51 +1640,19 @@ fun ArtFeedPost (
             Text(
                 text = if (artwork.title.length > 40) artwork.title.substring(0, 40).replace('+', ' ') + "..." else artwork.title.replace('+', ' '),
                 style = TextStyle(
-                    fontSize = 16.sp,
-                    color = ColorPalette.White
-
+                    fontSize = 20.sp,
+                    color = ColorPalette.Yellow,
+                    fontWeight = FontWeight.Bold
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        HorizontalDivider()
+        TheDivider(thickness = 1.dp)
+        Spacer(modifier = Modifier.height(2.dp))
 
         // Description text with expand/collapse functionality
-        Text(
-            text = if (isDescriptionExpanded) {
-                artwork.description.replace('+', ' ')
-            } else {
-                val maxVisibleChars = 100
-
-                if (artwork.description.length > maxVisibleChars)
-                {
-                    artwork.description.substring(0, maxVisibleChars).replace('+', ' ') + "..."
-                }
-                else {
-                    artwork.description.replace('+', ' ')
-                }
-            },
-            style = TextStyle(
-                fontSize = 14.sp,
-                color = ColorPalette.LightGray
-            ),
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        // "Read more" clickable text
-        if (artwork.description.length > 100 && !isDescriptionExpanded) {
-            Text(
-                text = "Read more",
-                color = ColorPalette.Blue,
-                style = TextStyle(fontSize = 14.sp),
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .clickable {
-                        isDescriptionExpanded = true
-                    }
-            )
-        }
+        ArtworkDescription(description = artwork.description)
     }
 }
 

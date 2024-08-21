@@ -14,6 +14,7 @@ object ColorPalette {
 
     val BackgroundMainLighter = Color(0xFF416A70) //534E52, 416A70
     val BackgroundMainDarker = Color(0xFF365A59)
+    val BackgroundMainEvenDarker = Color(0xFF2A4B4A)
     val Secondary = Color(0xFF965D62)
     val BackgroundAlternate = Color(0xFFEAEAEA) // Alternative background color for sections
     val BorderColor = Color(0xFFCCCCCC) // Default border color
