@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -111,7 +112,8 @@ fun ArtFeedScreen(
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        color = ColorPalette.Yellow
+                        color = ColorPalette.Yellow,
+                        fontFamily = FontFamily.Cursive
                     ),
                 )
 
@@ -186,7 +188,8 @@ fun ArtFeedScreen(
                             fontStyle = FontStyle.Italic,
                             fontWeight = FontWeight.Bold,
                             color = ColorPalette.Yellow,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            fontFamily = FontFamily.Serif
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )

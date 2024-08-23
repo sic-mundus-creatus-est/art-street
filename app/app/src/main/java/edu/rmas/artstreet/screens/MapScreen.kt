@@ -81,7 +81,7 @@ import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.ArtworkMarker
 import edu.rmas.artstreet.screens.components.SearchBar
 import edu.rmas.artstreet.screens.components.SignUpInButton
-import edu.rmas.artstreet.screens.components.UserImage
+import edu.rmas.artstreet.screens.components.MainUserInfo
 import edu.rmas.artstreet.screens.components.myPositionIndicator
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
@@ -235,17 +235,17 @@ fun MapScreen(
                 drawerState = drawerState,
                 gesturesEnabled = gesturesEnabled.value,
                 drawerContent = {
-                    ModalDrawerSheet(drawerContainerColor=ColorPalette.BackgroundMainLighter, drawerShape = RectangleShape){
+                    ModalDrawerSheet(drawerContainerColor=ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape){
                         Box(
                             modifier = Modifier
-                                .background(ColorPalette.BackgroundMainDarker)
+                                .background(ColorPalette.BackgroundMainEvenDarker)
                                 .fillMaxWidth()
                                 .height(140.dp)
                         ) {
                             if (user.value != null)
-                                UserImage(
+                                MainUserInfo(
                                     imageUrl = user.value!!.profilePicture,
-                                    name = user.value!!.fullName
+                                    name = user.value!!.fullName,
                                 )
                         }
                         NavigationDrawerItem(
@@ -260,7 +260,7 @@ fun MapScreen(
                             },
                             colors = NavigationDrawerItemDefaults.colors(
                                 selectedContainerColor = ColorPalette.BackgroundMainDarker,
-                                unselectedContainerColor = ColorPalette.BackgroundMainLighter
+                                unselectedContainerColor = ColorPalette.BackgroundMainDarker
                             ),
                             onClick = {
                                 coroutineScope.launch {
@@ -285,7 +285,7 @@ fun MapScreen(
                             },
                             colors = NavigationDrawerItemDefaults.colors(
                                 selectedContainerColor = ColorPalette.BackgroundMainDarker,
-                                unselectedContainerColor = ColorPalette.BackgroundMainLighter
+                                unselectedContainerColor = ColorPalette.BackgroundMainDarker
                             ),
                             onClick = {
                                 coroutineScope.launch {
@@ -309,7 +309,7 @@ fun MapScreen(
                             selected = false,
                             colors = NavigationDrawerItemDefaults.colors(
                                 selectedContainerColor = ColorPalette.BackgroundMainDarker,
-                                unselectedContainerColor = ColorPalette.BackgroundMainLighter
+                                unselectedContainerColor = ColorPalette.BackgroundMainDarker
                             ),
                             icon = { Icon(imageVector = Icons.Filled.Settings, contentDescription = "settings", tint = ColorPalette.Yellow) },
                             onClick = {

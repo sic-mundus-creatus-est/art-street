@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -43,11 +45,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DoNotDisturb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -97,6 +98,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -141,7 +143,7 @@ fun Secondary(secondary_text: String)
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
         fontStyle = FontStyle.Italic,
-        textAlign = TextAlign.End
+        textAlign = TextAlign.End,
     ),
         modifier = Modifier
             .fillMaxWidth()
@@ -153,15 +155,14 @@ fun Secondary(secondary_text: String)
 
 @Composable
 fun TheDivider(
-    color: Color = ColorPalette.Yellow, // Default color
-    thickness: Dp = 2.dp // Default thickness
+    color: Color = ColorPalette.Yellow,
+    thickness: Dp = 2.dp
 ) {
     Divider(
         color = color,
         thickness = thickness,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
     )
 }
 
@@ -429,7 +430,7 @@ fun UploadIcon(
         if (selectedImageUri.value == Uri.EMPTY || selectedImageUri.value == null) {
             Image(
                 painter = painterResource(id = R.drawable.pfp),
-                contentDescription = "Profile Picture",
+                contentDescription = "profile_picture",
                 modifier = Modifier
                     .size(140.dp)
                     .border(
@@ -512,78 +513,6 @@ fun customErrorContainer(
     }
 }
 
-@Composable
-fun PrimaryArtworkPhotoUploadField(
-    selectedImageUri: MutableState<Uri?>
-){
-    val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
-            selectedImageUri.value = uri
-        }
-    )
-
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .height(200.dp)
-        .padding(vertical = 2.dp)
-        .shadow(
-            6.dp,
-            shape = RoundedCornerShape(20.dp)
-        )
-        .border(
-            1.dp,
-            Color.Transparent,
-            shape = RoundedCornerShape(20.dp)
-        )
-        .background(
-            ColorPalette.White,
-            shape = RoundedCornerShape(20.dp)
-        ),
-        contentAlignment = Alignment.Center
-    ){
-        if (selectedImageUri.value == Uri.EMPTY) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null
-                    ) {
-                        singlePhotoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = ""
-                )
-                Text(text = "Add primary artwork photo (cover)")
-            }
-        }else{
-            selectedImageUri.value?.let { uri ->
-                AsyncImage(
-                    model = uri,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.LightGray)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) {
-                            singlePhotoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -807,7 +736,7 @@ fun PostButton(
                         color = if (isEnabled.value) buttonColor else Color.LightGray,
                         shape = RectangleShape
                     )
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             ) {
                 if (isLoading.value) {
                     CircularProgressIndicator(
@@ -831,14 +760,14 @@ fun PostButton(
             Canvas(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .aspectRatio(1f) // Ensure the canvas is square
+                    .aspectRatio(1f)
             ) {
                 val trianglePath = Path().apply {
-                    val sideLength = size.height// Since it's a square, height equals width
-                    moveTo(0f, 0f) // Start at the top-left corner
-                    lineTo(sideLength, size.height * 0.5f) // Line to the middle of the right side
-                    lineTo(0f, sideLength) // Line to the bottom-left corner
-                    close() // Close the path
+                    val sideLength = size.height
+                    moveTo(0f, 0f)
+                    lineTo(sideLength, size.height * 0.5f)
+                    lineTo(0f, sideLength)
+                    close()
                 }
 
                 drawPath(
@@ -858,45 +787,54 @@ fun PostButton(
 
 
 
-
-
 @Composable
-fun UserImage(
+fun MainUserInfo(
     imageUrl: String,
     name: String,
-){
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .padding(top = 20.dp), contentAlignment = Alignment.Center){
+    username: String? = null,
+    phoneNumber: String? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp)
+    ) {
         Row {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "userimage",
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(100.dp)
-                    .border(
-                        3.dp,
-                        Color.Gray,
-                        shape = RoundedCornerShape(0.dp)
-                    )
-                    .shadow(
-                        6.dp,
-                        shape = RoundedCornerShape(0.dp)
-                    )
-                    .clip(shape = RoundedCornerShape(0.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(40.dp))
+            ProfilePicture(imageUrl = imageUrl)
+            Spacer(modifier = Modifier.width(17.dp))
             Column {
                 Text(
-                    modifier = Modifier
-                        .padding(10.dp),
-                    text = name.replace(","," "),
-                    color = ColorPalette.White,
+                    modifier = Modifier.padding(top = 5.dp),
+                    text = name.replace(",", " "),
+                    color = ColorPalette.Yellow,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Text(
+                    modifier = Modifier.padding(top = 2.dp),
+                    text = username ?: "@username",
+                    color = ColorPalette.LightGray,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                if(phoneNumber != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+                    {
+                        Icon(imageVector = Icons.Filled.Phone, contentDescription = "", modifier = Modifier.padding(top = 20.dp), tint = ColorPalette.Yellow)
+                        Text(
+                            modifier = Modifier.padding(top = 20.dp),
+                            text = phoneNumber,
+                            color = ColorPalette.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
             }
         }
     }
@@ -1137,208 +1075,95 @@ fun searchLogic(
 
 
 @Composable
-fun SimpleInputField(
-    inputValue: MutableState<String>,
-    inputText: String,
-){
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .border(
-                1.dp,
-                Color.Transparent,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .background(
-                Color.White,
-                shape = RoundedCornerShape(10.dp)
-            )
-    ){
-        OutlinedTextField(
-            value = inputValue.value,
-            onValueChange = { newValue ->
-                inputValue.value = newValue
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = inputText,
-                    style = TextStyle(
-                        color = ColorPalette.Secondary,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-            )
-        )
-    }
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FormInputField(
-    inputValue: MutableState<String>,
-    label: String,
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    leadingIcon: @Composable (() -> Unit)? = null,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-
-        OutlinedTextField(
-            value = inputValue.value,
-            onValueChange = { newValue ->
-                inputValue.value = newValue
-            },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f), // Slightly transparent background
-                    shape = RectangleShape
-                ),
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    style = TextStyle(
-                        color = ColorPalette.DarkGrey,
-                        fontWeight = FontWeight.Normal
-                    )
-                )
-            },
-            leadingIcon = leadingIcon,
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = ColorPalette.Yellow,
-                unfocusedBorderColor = ColorPalette.BackgroundMainDarker,
-                //textColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                //backgroundColor = Color.Transparent // Transparent container
-            ),
-            shape = RectangleShape, // Remove rounded corners
-        )
-    }
-}
-
-
-
-
-
-@Composable
 fun ProfilePicture(
-    imageUrl: String
-){
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .padding(top = 20.dp), contentAlignment = Alignment.Center){
-        Row {
-            AsyncImage (
-                model = imageUrl,
-                contentDescription = "profile_picture",
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(200.dp)
-                    .border(
-                        3.dp,
-                        Color.Gray,
-                    )
-                    .shadow(
-                        6.dp,
-                    ),
-                contentScale = ContentScale.Crop
+    imageUrl: String,
+    modifier: Modifier = Modifier,
+    borderColor: Color = ColorPalette.Yellow,
+    borderWidth: Dp = 2.dp,
+    cornerRadius: Dp = 4.dp,
+    shadowElevation: Dp = 6.dp,
+) {
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "profile_picture",
+        modifier = modifier
+            .width(100.dp)
+            .height(100.dp)
+            .border(
+                borderWidth,
+                borderColor,
+                shape = RoundedCornerShape(cornerRadius)
             )
-        }
-    }
+            .shadow(
+                shadowElevation,
+            )
+            .clip(shape = RoundedCornerShape(cornerRadius)),
+        contentScale = ContentScale.Crop
+    )
 }
 
 @Composable
-fun BackButton(
-    onClick: () -> Unit
-){
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .background(
-                Color.Transparent,
-                RoundedCornerShape(5.dp)
-            )
-            .padding(0.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Filled.ArrowBackIosNew,
-            contentDescription = ""
-        )
-    }
-}
-
-@Composable
-fun PhotosSection(
+fun ProfileArtworkGrid(
     artworks: List<Artwork>,
     navController: NavController
 ) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
-    ) {
-        Text(text = "Added locations")
-        Spacer(modifier = Modifier.height(8.dp))
+    val columnCount = 3
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(ColorPalette.BackgroundMainDarker)
+                .padding(top = 14.dp, bottom = 9.dp)
+        ) {
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = ColorPalette.Yellow, fontWeight = FontWeight.Bold, fontSize = 24.sp)) {
+                        append("${artworks.size} ")
+                    }
+                    withStyle(style = SpanStyle(color = ColorPalette.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
+                        append("Shared Locations")
+                    }
+                },
+                fontFamily = FontFamily.SansSerif,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+        Spacer(modifier = Modifier.height(1.dp))
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columnCount),
+            contentPadding = PaddingValues(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            if(artworks.isNotEmpty()) {
-                for (artwork in artworks) {
-                    item {
-                        AsyncImage(
-                            model = artwork.primaryImage,
-                            contentScale = ContentScale.Crop,
-                            contentDescription = "",
-                            modifier =
-                            Modifier
-                                .width(150.dp)
-                                .height(150.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    Color.White,
-                                    RoundedCornerShape(20.dp)
-                                )
-                                .clickable {
-                                    val artworkJson = Gson().toJson(artwork)
-                                    val encodedArtworkJson = URLEncoder.encode(
-                                        artworkJson,
-                                        StandardCharsets.UTF_8.toString()
-                                    )
-                                    navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson")
-                                }
-                        )
-                    }
-                }
-            }else{
-                item {
-                    Image(
-                        imageVector = Icons.Filled.DoNotDisturb,
-                        contentScale = ContentScale.Crop,
-                        contentDescription = "",
-                        modifier =
-                        Modifier
-                            .width(150.dp)
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                Color.Gray,
-                                RoundedCornerShape(20.dp)
+            items(artworks.size) { index ->
+                val artwork = artworks[index]
+                AsyncImage(
+                    model = artwork.primaryImage,
+                    contentScale = ContentScale.Crop,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .aspectRatio(1f) // ensures the image is square
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White)
+                        .clickable {
+                            val artworkJson = Gson().toJson(artwork)
+                            val encodedArtworkJson = URLEncoder.encode(
+                                artworkJson,
+                                StandardCharsets.UTF_8.toString()
                             )
-                    )
-                }
+                            navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson")
+                        }
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun PrimaryArtworkPhoto(
@@ -1421,12 +1246,12 @@ fun ArtworkDescription(description: String) {
     val annotatedText = buildAnnotatedString {
         if (isDescriptionExpanded) {
             // Full description when expanded
-            withStyle(style = SpanStyle(color = ColorPalette.LightGray, fontSize = 14.sp)) {
+            withStyle(style = SpanStyle(color = ColorPalette.White, fontSize = 14.sp)) {
                 append(description.replace('+', ' '))
             }
         } else {
             // Truncated description with "Read more"
-            withStyle(style = SpanStyle(color = ColorPalette.LightGray, fontSize = 14.sp)) {
+            withStyle(style = SpanStyle(color = ColorPalette.White, fontSize = 14.sp)) {
                 append(description.take(100).replace('+', ' ') + "...")
             }
             withStyle(style = SpanStyle(color = ColorPalette.Blue, fontSize = 14.sp)) {
