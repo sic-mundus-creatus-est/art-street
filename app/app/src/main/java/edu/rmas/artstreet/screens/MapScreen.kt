@@ -205,10 +205,6 @@ fun MapScreen(
         mutableStateOf(false)
     }
 
-    var artworksToShow = remember {
-        mutableListOf<Artwork>()
-    }
-
     ModalBottomSheetLayout(
         sheetState = sheetState,
         sheetContent = {

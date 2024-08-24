@@ -1482,6 +1482,50 @@ fun ArtFeedPost (
 }
 
 
+@Composable
+fun VisitedInteractionButton(
+    isNearby: Boolean,
+    visited: Boolean = false,
+    onClick: () -> Unit
+) {
+    val icon = if (isNearby) {
+        Icons.Default.Visibility
+    } else {
+        Icons.Default.VisibilityOff
+    }
+
+    val iconColor: Color
+
+    if(visited)
+    {
+        iconColor = ColorPalette.Yellow
+    }
+    else {
+        if (isNearby)
+        {
+            iconColor = ColorPalette.LightGray
+        }
+        else {
+            iconColor = ColorPalette.DarkGrey
+        }
+    }
+
+    val modifier = if (isNearby) {
+        Modifier.clickable(onClick = onClick)
+    } else {
+        Modifier
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = if (isNearby) "Visibility Icon" else "Icon Disabled",
+        tint = iconColor,
+        modifier = modifier.size(30.dp)
+    )
+}
+
+
+
 
 
 

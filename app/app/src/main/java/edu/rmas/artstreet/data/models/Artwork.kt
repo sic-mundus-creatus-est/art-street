@@ -13,5 +13,4 @@ data class Artwork (
 
     val primaryImage: String = "",
     val galleryImages: List<String> = emptyList(),
-
-    )
+)

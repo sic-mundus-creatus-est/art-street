@@ -162,7 +162,7 @@ class LocationService : Service()
             }
     }
 
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
+    fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
     {//Haversine formula
         val earthRadius = 6371000.0
 

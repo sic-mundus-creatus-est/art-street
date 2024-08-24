@@ -6,7 +6,6 @@ import edu.rmas.artstreet.data.services.DatabaseService
 import edu.rmas.artstreet.data.services.StorageService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
@@ -74,36 +73,23 @@ class AuthRepo : IAuthRepo
         return try
         {
             val currentUser = FirebaseAuth.getInstance().currentUser
+                ?: return Resource.Failure(Exception("[ERROR] No current user session found!"))
 
-            if (currentUser != null)
+            val uid = currentUser.uid
+            val userDocRef = FirebaseFirestore.getInstance().collection("users").document(uid)
+            val userSnapshot = userDocRef.get().await()
+
+            if (!userSnapshot.exists())
             {
-                val uid = currentUser.uid
-
-                val db = FirebaseFirestore.getInstance()
-
-                val userDocRef = db.collection("users").document(uid)
-                val userSnapshot = userDocRef.get().await()
-
-                if (userSnapshot.exists())
-                {
-                    val customUser = userSnapshot.toObject(User::class.java)
-
-                    if (customUser != null)
-                    {
-                        Resource.Success(customUser)
-                    }
-                    else {
-                        Resource.Failure(Exception("[ERROR] Failed to map snapshot document to User! (User ID: ${uid})"))
-                    }
-                }
-                else {
-                    Resource.Failure(Exception("[ERROR] User snapshot document does not exist! (User ID: ${uid})"))
-                }
+                return Resource.Failure(Exception("[ERROR] User document does not exist! (User ID: $uid)"))
             }
-            else {
-                Resource.Failure(Exception("[ERROR] No current user session found!"))
-            }
-        } catch (e: Exception) {
+
+            val user = userSnapshot.toObject(User::class.java)
+                ?: return Resource.Failure(Exception("[ERROR] Failed to map snapshot document to User! (User ID: $uid)"))
+
+            Resource.Success(user)
+        }
+        catch (e: Exception) {
             e.printStackTrace()
             Resource.Failure(e)
         }
@@ -117,16 +103,16 @@ class AuthRepo : IAuthRepo
             val usersCollectionRef = db.collection("users")
             val usersSnapshot = usersCollectionRef.get().await()
 
-            if (!usersSnapshot.isEmpty)
+            if (usersSnapshot.isEmpty)
             {
-                val usersList = usersSnapshot.documents.mapNotNull { document ->
-                    document.toObject(User::class.java)
-                }
-                Resource.Success(usersList)
+                return Resource.Failure(Exception("[INFO] No users found in the database."))
             }
-            else {
-                Resource.Failure(Exception("[INFO] No users found in the database."))
+
+            val usersList = usersSnapshot.documents.mapNotNull { document ->
+                document.toObject(User::class.java)
             }
+
+            Resource.Success(usersList)
         }
         catch (e: Exception) {
             e.printStackTrace()

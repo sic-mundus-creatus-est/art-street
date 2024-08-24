@@ -158,10 +158,12 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
             val artworkJson = backStackEntry.arguments?.getString("artwork")
             val artwork = Gson().fromJson(artworkJson, Artwork::class.java)
 
-            // get ratings here
+            artworkVM.getArtworkInteractions(artwork.id)
 
             ArtworkScreen (
                 artwork = artwork,
+                artworkVM = artworkVM,
+                authVM = authVM
             )
         }
     //-----------------------------------------------------------------------------

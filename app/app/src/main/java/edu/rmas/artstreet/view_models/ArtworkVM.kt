@@ -7,14 +7,21 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import edu.rmas.artstreet.data.models.Artwork
+import edu.rmas.artstreet.data.models.Interaction
 import edu.rmas.artstreet.data.repositories.ArtworkRepo
+import edu.rmas.artstreet.data.repositories.InteractionRepo
 import edu.rmas.artstreet.data.repositories.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class ArtworkVM: ViewModel() {
-    val repository = ArtworkRepo()
+class ArtworkVM: ViewModel()
+{
+// -----------------------------------------------
+// -[[ REPOSITORIES ]]-
+    val artworkRepo = ArtworkRepo()
+    val interactionRepo = InteractionRepo()
+// -----------------------------------------------
 
     private val _artworkFlow = MutableStateFlow<Resource<String>?>(null)
     val artworkFlow: StateFlow<Resource<String>?> = _artworkFlow
@@ -26,12 +33,18 @@ class ArtworkVM: ViewModel() {
     private val _userArtworks = MutableStateFlow<Resource<List<Artwork>>>(Resource.Success(emptyList()))
     val userArtworks: StateFlow<Resource<List<Artwork>>> get() = _userArtworks
 
+    private val _newInteraction = MutableStateFlow<Resource<String>?>(null)
+    val newInteraction: StateFlow<Resource<String>?> = _newInteraction
+
+    private val _interactions = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
+    val interactions: StateFlow<Resource<List<Interaction>>> get() = _interactions
+
     init {
         getAllArtworks()
     }
 
     fun getAllArtworks() = viewModelScope.launch {
-        _artworks.value = repository.getAllArtworks()
+        _artworks.value = artworkRepo.getAllArtworks()
     }
 
     fun saveArtworkData(
@@ -42,7 +55,7 @@ class ArtworkVM: ViewModel() {
         galleryImages: List<Uri>,
     ) = viewModelScope.launch{
         _artworkFlow.value = Resource.Loading
-        repository.saveArtworkData(
+        artworkRepo.saveArtworkData(
             title = title,
             location = location!!.value,
             description = description,
@@ -55,13 +68,28 @@ class ArtworkVM: ViewModel() {
     fun getUserArtworks(
         uid: String
     ) = viewModelScope.launch {
-        _userArtworks.value = repository.getCapturedByUserArtworks(uid)
+        _userArtworks.value = artworkRepo.getCapturedByUserArtworks(uid)
+    }
+
+    fun markAsVisited ( artworkId: String, artwork: Artwork) = viewModelScope.launch {
+        _newInteraction.value = interactionRepo.markAsVisited(artworkId, artwork)
+    }
+
+    fun markAsNotVisited(interactionId: String ) = viewModelScope.launch {
+        _newInteraction.value = interactionRepo.markAsNotVisited(interactionId)
+    }
+
+    fun getArtworkInteractions ( artworkId: String ) = viewModelScope.launch {
+        _interactions.value = Resource.Loading
+        val result = interactionRepo.getArtworkInteractions(artworkId)
+        _interactions.value = result
     }
 }
 
-class ArtworkVMFactory: ViewModelProvider.Factory{
+class ArtworkVMFactory: ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if(modelClass.isAssignableFrom(ArtworkVM::class.java)){
+        if(modelClass.isAssignableFrom(ArtworkVM::class.java))
+        {
             return ArtworkVM() as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

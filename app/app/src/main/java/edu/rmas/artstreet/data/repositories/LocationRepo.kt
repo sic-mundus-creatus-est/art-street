@@ -13,11 +13,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
-class LocationRepo(
+class LocationRepo (
     private val context: Context,
     private val client: FusedLocationProviderClient
 ) : ILocationRepo {
-    override fun LocationUpdates(interval: Long): Flow<Location> {
+    override fun LocationUpdates(interval: Long): Flow<Location>
+    {
         return callbackFlow {
             if(!context.hasLocationPermission()){
                 throw ILocationRepo.LocationException("Location services need to be enabled for this feature!")
@@ -27,7 +28,8 @@ class LocationRepo(
             val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
             val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
-            if(!isGpsEnabled && !isNetworkEnabled){
+            if(!isGpsEnabled && !isNetworkEnabled)
+            {
                 throw ILocationRepo.LocationException("Location tracking is currently turned off.")
             }
 
@@ -35,8 +37,10 @@ class LocationRepo(
                 .setInterval(interval)
                 .setFastestInterval(interval)
 
-            val locationCallback = object : LocationCallback(){
-                override fun onLocationResult(result: LocationResult) {
+            val locationCallback = object : LocationCallback()
+            {
+                override fun onLocationResult(result: LocationResult)
+                {
                     super.onLocationResult(result)
                     result.locations.lastOrNull()?.let { location ->
                         launch { send(location) }
@@ -44,7 +48,7 @@ class LocationRepo(
                 }
             }
 
-            client.requestLocationUpdates(
+            client.requestLocationUpdates (
                 request,
                 locationCallback,
                 Looper.getMainLooper()
@@ -55,4 +59,5 @@ class LocationRepo(
             }
         }
     }
+
 }
