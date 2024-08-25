@@ -1,5 +1,6 @@
 package edu.rmas.artstreet.data.repositories
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import edu.rmas.artstreet.data.models.Artwork
@@ -99,6 +100,34 @@ class InteractionRepo : IInteractionRepo
             e.printStackTrace()
             Resource.Failure(e)
         }
+    }
+
+
+    fun listenForInteractions(artworkId: String, onUpdate: (Resource<List<Interaction>>) -> Unit) {
+        val markReference = firestore.collection("interactions")
+        markReference
+            .whereEqualTo("artworkId", artworkId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.w("Firestore", "Listen for artwork interactions failed.", e)
+                    onUpdate(Resource.Failure(e))
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val interactions = snapshot.documents.map { document ->
+                        Interaction(
+                            id = document.id,
+                            userId = document.getString("userId") ?: "",
+                            artworkId = artworkId,
+                            visitedByUser = document.getBoolean("visitedByUser") ?: false
+                        )
+                    }
+                    onUpdate(Resource.Success(interactions))
+                } else {
+                    onUpdate(Resource.Success(emptyList())) // No interactions found
+                }
+            }
     }
 
 }

@@ -84,6 +84,13 @@ class ArtworkVM: ViewModel()
         val result = interactionRepo.getArtworkInteractions(artworkId)
         _interactions.value = result
     }
+
+    fun fetchUpdatedArtworkInteractions ( artworkId: String ) = viewModelScope.launch {
+        _interactions.value = Resource.Loading
+        interactionRepo.listenForInteractions(artworkId) { updatedInteractions ->
+            _interactions.value = updatedInteractions
+        }
+    }
 }
 
 class ArtworkVMFactory: ViewModelProvider.Factory {

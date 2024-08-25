@@ -6,7 +6,7 @@ import edu.rmas.artstreet.data.models.Interaction
 interface IInteractionRepo
 {
     suspend fun getArtworkInteractions (
-        placeId: String
+        artworkId: String
     ) : Resource<List<Interaction>>
 
     suspend fun getUserInteractions() : Resource<List<Interaction>>

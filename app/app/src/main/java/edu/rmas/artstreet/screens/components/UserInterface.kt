@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.location.Address
 import android.location.Geocoder
 import android.net.Uri
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +15,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -93,7 +95,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -119,6 +124,8 @@ import com.google.maps.android.compose.rememberMarkerState
 import edu.rmas.artstreet.R
 import edu.rmas.artstreet.app_navigation.Routes
 import edu.rmas.artstreet.data.models.Artwork
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
@@ -1494,35 +1501,46 @@ fun VisitedInteractionButton(
         Icons.Default.VisibilityOff
     }
 
-    val iconColor: Color
-
-    if(visited)
-    {
-        iconColor = ColorPalette.Yellow
-    }
-    else {
-        if (isNearby)
-        {
-            iconColor = ColorPalette.LightGray
-        }
-        else {
-            iconColor = ColorPalette.DarkGrey
-        }
-    }
-
-    val modifier = if (isNearby) {
-        Modifier.clickable(onClick = onClick)
-    } else {
-        Modifier
+    val iconColor: Color = when {
+        visited -> ColorPalette.Yellow
+        isNearby -> ColorPalette.LightGray
+        else -> ColorPalette.DarkGrey
     }
 
     Icon(
         imageVector = icon,
         contentDescription = if (isNearby) "Visibility Icon" else "Icon Disabled",
         tint = iconColor,
-        modifier = modifier.size(30.dp)
+        modifier = Modifier
+            .size(30.dp)
+            .let { modifier ->
+                if (isNearby) {
+                    modifier.safeClick(onSafeClick = onClick)
+                } else {
+                    modifier
+                }
+            }
     )
 }
+
+@Composable
+fun Modifier.safeClick(
+    defaultInterval: Long = 1000L,
+    onSafeClick: () -> Unit
+): Modifier = this.then(
+    Modifier.pointerInput(Unit) {
+        var lastClickTime = 0L
+
+        detectTapGestures {
+            val currentTime = SystemClock.elapsedRealtime()
+            if (currentTime - lastClickTime >= defaultInterval) {
+                lastClickTime = currentTime
+                onSafeClick()
+            }
+        }
+    }
+)
+
 
 
 

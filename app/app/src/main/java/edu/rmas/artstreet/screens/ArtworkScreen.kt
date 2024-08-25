@@ -24,11 +24,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,22 +59,24 @@ import edu.rmas.artstreet.screens.components.VisitedInteractionButton
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
 
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkScreen (
+fun ArtworkScreen(
     artwork: Artwork,
     artworkVM: ArtworkVM,
     authVM: AuthVM
 ) {
     val context = LocalContext.current
     val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
-
-    val interactions = remember { mutableListOf<Interaction>() }
-
-    val currentUserInteraction = remember { mutableStateOf("") }
-
-    val numOfVisits = remember { mutableIntStateOf(0) }
     val isLoading = remember { mutableStateOf(false) }
+
+    val interactionsResource by artworkVM.interactions.collectAsState()
+    val numOfVisits by rememberUpdatedState(
+        newValue = (interactionsResource as? Resource.Success)?.result?.count { interaction ->
+            interaction.visitedByUser
+        } ?: ""
+    )
 
     val receiver = remember {
         object : BroadcastReceiver() {
@@ -98,22 +103,22 @@ fun ArtworkScreen (
     }
 
     val isNearby = currentUserLocation.value?.let { userLocation ->
-        val distance = calculateDistance (
+        val distance = calculateDistance(
             userLocation.latitude, userLocation.longitude,
             artwork.location.latitude, artwork.location.longitude
         )
         distance <= 100
     } ?: false
 
-    val density = LocalDensity.current.density // For pixel to dp conversion
-
+    // For pixel to dp conversion
+    val density = LocalDensity.current.density
     var fixedContentHeightDp by remember { mutableStateOf(0.dp) }
 
     Box(modifier = Modifier
         .fillMaxSize()
         .background(ColorPalette.BackgroundMainEvenDarker)
     ) {
-        Column(
+        Column (
             modifier = Modifier
                 .fillMaxWidth()
                 .background(ColorPalette.BackgroundMainEvenDarker)
@@ -148,29 +153,28 @@ fun ArtworkScreen (
                         ) {
                             Spacer(modifier = Modifier.weight(1f))
                             Text(
-                                text = "${numOfVisits.intValue}",
+                                text = "${numOfVisits}",
                                 color = ColorPalette.Yellow,
-                                style = TextStyle ( fontSize = 24.sp, fontFamily = FontFamily.Monospace),
+                                style = TextStyle(fontSize = 24.sp, fontFamily = FontFamily.Monospace),
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             VisitedInteractionButton(
                                 isNearby = isNearby,
-                                visited = interactions.any {
-                                    it.artworkId == artwork.id && it.userId == authVM.currentUser?.uid && it.visitedByUser
-                                },
+                                visited = (interactionsResource as? Resource.Success)?.result?.any {
+                                    it.artworkId == artwork.id &&
+                                            it.userId == authVM.currentUser?.uid &&
+                                            it.visitedByUser
+                                } == true,
                                 onClick = {
-                                    val existingInteraction = interactions.firstOrNull {
-                                        it.artworkId == artwork.id && it.userId == authVM.currentUser?.uid
+                                    isLoading.value = true
+                                    val existingInteraction = (interactionsResource as? Resource.Success)?.result?.firstOrNull {
+                                        it.artworkId == artwork.id &&
+                                                it.userId == authVM.currentUser?.uid
                                     }
                                     if (existingInteraction != null) {
-                                        isLoading.value = true
                                         artworkVM.markAsNotVisited(existingInteraction.id)
                                     } else {
-                                        isLoading.value = true
-                                        artworkVM.markAsVisited(
-                                            artwork.id,
-                                            artwork
-                                        )
+                                        artworkVM.markAsVisited(artwork.id, artwork)
                                     }
                                 }
                             )
@@ -204,49 +208,30 @@ fun ArtworkScreen (
         }
     }
 
-    val interactionRes = artworkVM.interactions.collectAsState()
-    val newInteractionRes = artworkVM.newInteraction.collectAsState()
-
-    interactionRes.value.let {
-        when (it) {
-            is Resource.Success -> {
-                interactions.addAll(it.result)
-
-                val visits = it.result.count { interaction ->
-                    interaction.visitedByUser == true
-                }
-                numOfVisits.value = visits
-            }
-            is Resource.Loading -> { /* Handle loading state */ }
-            is Resource.Failure -> { /* Handle failure state */ }
+    LaunchedEffect(interactionsResource) {
+        if (interactionsResource is Resource.Success) {
+            Log.d("ArtworkScreen", "Interactions fetched: ${(interactionsResource as Resource.Success<List<Interaction>>).result.size}")
         }
     }
 
+    when (val newInteractionRes = artworkVM.newInteraction.collectAsState().value)
+    {
+        is Resource.Success -> {
+            artworkVM.fetchUpdatedArtworkInteractions(artwork.id)
 
-    newInteractionRes.value.let {
-        when(it){
-            is Resource.Success -> {
-                isLoading.value = false
-
-                val interaction = interactions.firstOrNull { interaction ->
-                    interaction.id == it.result
-                }
-
-                if(interaction != null) {
-                    if( currentUserInteraction.value != "" )
-                        interaction.visitedByUser = currentUserInteraction.value.toBoolean()
-                }
-            }
-            is Resource.Loading -> {
-                //
-            }
-            is Resource.Failure -> {
-                Toast.makeText(context, "Network error. Please check your connection and try again.", Toast.LENGTH_LONG).show()
-                isLoading.value = false
-            }
-            null -> {
-                isLoading.value = false
-            }
+            isLoading.value = false
+        }
+        is Resource.Loading -> { /* :) */ }
+        is Resource.Failure -> {
+            Toast.makeText(
+                context,
+                "Network error. Please check your connection and try again.",
+                Toast.LENGTH_LONG
+            ).show()
+            isLoading.value = false
+        }
+        null -> {
+            isLoading.value = false
         }
     }
 }
