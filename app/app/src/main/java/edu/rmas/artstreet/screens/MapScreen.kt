@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArtTrack
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.rememberModalBottomSheetState
@@ -82,6 +83,7 @@ import edu.rmas.artstreet.screens.components.ArtworkMarker
 import edu.rmas.artstreet.screens.components.SearchBar
 import edu.rmas.artstreet.screens.components.SignUpInButton
 import edu.rmas.artstreet.screens.components.MainUserInfo
+import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.screens.components.myPositionIndicator
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
@@ -133,15 +135,9 @@ fun MapScreen(
                 allArtworks.addAll(it.result)
             }
 
-            is Resource.Loading -> {
-
-            }
-
-            is Resource.Failure -> {
-                Log.e("Podaci", it.toString())
-            }
-
-            null -> {}
+            is Resource.Loading -> { }
+            is Resource.Failure -> { }
+            null -> { }
         }
     }
 
@@ -268,7 +264,7 @@ fun MapScreen(
                             },
                             modifier = Modifier.clip(RectangleShape)
                         )
-                        HorizontalDivider()
+                        TheDivider(thickness = 1.dp)
                         NavigationDrawerItem(
                             label = { Text(text = "Art Feed", color = ColorPalette.White) },
                             selected = false,
@@ -298,7 +294,29 @@ fun MapScreen(
                             },
                             modifier = Modifier.clip(RectangleShape)
                         )
-                        HorizontalDivider()
+                        TheDivider(thickness = 1.dp)
+                        NavigationDrawerItem(
+                            label = { Text(text = "Leaderboard", color = ColorPalette.White) },
+                            selected = false,
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Leaderboard,
+                                    contentDescription = "leaderboard",
+                                    tint = ColorPalette.Yellow
+                                )
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = ColorPalette.BackgroundMainDarker,
+                                unselectedContainerColor = ColorPalette.BackgroundMainDarker
+                            ),
+                            onClick = {
+                                coroutineScope.launch {
+                                    navController.navigate(Routes.leaderboardScreen)
+                                }
+                            },
+                            modifier = Modifier.clip(RectangleShape)
+                        )
+                        TheDivider(thickness = 1.dp)
                         NavigationDrawerItem(
                             modifier = Modifier.clip(RectangleShape),
                             label = { Text(text = "Settings", color = ColorPalette.White) },

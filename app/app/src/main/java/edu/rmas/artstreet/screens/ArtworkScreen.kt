@@ -20,15 +20,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -71,7 +68,7 @@ fun ArtworkScreen(
     val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
     val isLoading = remember { mutableStateOf(false) }
 
-    val interactionsResource by artworkVM.interactions.collectAsState()
+    val interactionsResource by artworkVM.artworkInteractions.collectAsState()
     val numOfVisits by rememberUpdatedState(
         newValue = (interactionsResource as? Resource.Success)?.result?.count { interaction ->
             interaction.visitedByUser

@@ -97,8 +97,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -124,8 +122,7 @@ import com.google.maps.android.compose.rememberMarkerState
 import edu.rmas.artstreet.R
 import edu.rmas.artstreet.app_navigation.Routes
 import edu.rmas.artstreet.data.models.Artwork
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import edu.rmas.artstreet.data.models.User
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
@@ -1139,6 +1136,7 @@ fun ProfileArtworkGrid(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
+        TheDivider()
         Spacer(modifier = Modifier.height(1.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(columnCount),
@@ -1540,6 +1538,76 @@ fun Modifier.safeClick(
         }
     }
 )
+
+
+
+
+// user leaderboard
+
+@Composable
+fun UserLeaderboardRow(
+    user: User,
+    artworkCount: Int,
+    navController: NavController
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                val userJson = Gson().toJson(user)
+                val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
+                navController.navigate(Routes.profileScreen + "/$encodedUserJson")
+            }
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = user.fullName,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                val usernameText = user.username.let { "@$it" } ?: "@username"
+                Text(
+                    text = usernameText,
+                    style = TextStyle(
+                        fontSize = 14.sp
+                    )
+                )
+            }
+            Text(
+                text = "$artworkCount",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun LeaderboardList(
+    userWithPoints: Map<User, Int>,
+    navController: NavController
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        val sortedEntries = userWithPoints.entries.sortedByDescending { it.value }
+        sortedEntries.forEach { entry ->
+            UserLeaderboardRow(
+                user = entry.key,
+                artworkCount = entry.value,
+                navController = navController
+            )
+        }
+    }
+}
+
 
 
 

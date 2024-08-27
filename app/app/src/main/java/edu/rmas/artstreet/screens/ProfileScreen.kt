@@ -63,8 +63,6 @@ fun ProfileScreen(
                     .padding(top = 14.dp, bottom = 9.dp)
             )
 
-            TheDivider()
-
             Box (
                 modifier = Modifier
                     .fillMaxWidth()
@@ -73,8 +71,6 @@ fun ProfileScreen(
             ) {
                 MainUserInfo( imageUrl = user.profilePicture, name = user.fullName.replace("+", " "), phoneNumber = user.phoneNumber )
             }
-
-            TheDivider()
 
             ProfileArtworkGrid(artworks = artworks, navController = navController)
         }

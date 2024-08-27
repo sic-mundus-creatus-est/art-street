@@ -9,7 +9,7 @@ interface IInteractionRepo
         artworkId: String
     ) : Resource<List<Interaction>>
 
-    suspend fun getUserInteractions() : Resource<List<Interaction>>
+    suspend fun getCurrentUserInteractions() : Resource<List<Interaction>>
 
     suspend fun markAsVisited (
         artworkId: String,
@@ -19,4 +19,7 @@ interface IInteractionRepo
     suspend fun markAsNotVisited (
         interactionId: String,
     ) : Resource<String>
+
+    suspend fun getUserInteractions(userId: String): Resource<List<Interaction>>
+    suspend fun getAllInteractions(): Resource<List<Interaction>>
 }

@@ -79,7 +79,7 @@ fun AddArtworkScreen(
         }
     }
 
-    val artworksFlow = artworkVM?.artworkFlow?.collectAsState()
+    val artworksFlow = artworkVM?.artwork?.collectAsState()
 
     val title = remember {
         mutableStateOf("")
@@ -192,7 +192,7 @@ fun AddArtworkScreen(
                             galleryImages = selectedPhotos.value,
                         )
                     },
-                    text = "Add",
+                    text = "Post",
                     isEnabled = buttonIsEnabled,
                     isLoading = buttonIsLoading,
                     modifier = Modifier

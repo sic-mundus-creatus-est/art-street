@@ -14,6 +14,7 @@ object Routes
     val artFeedScreen = "artFeedScreen"
 
     val profileScreen = "profileScreen"
+    val leaderboardScreen = "leaderboardScreen"
 
     val settingsScreen = "settingsScreen"
 }

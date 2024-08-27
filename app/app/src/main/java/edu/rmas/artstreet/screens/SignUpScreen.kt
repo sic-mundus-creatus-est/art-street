@@ -228,7 +228,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
                     isLoading.value = false
                     LaunchedEffect(Unit) {
                         navController?.navigate(Routes.testScreen) {
-                            popUpTo(Routes.testScreen) {
+                            popUpTo(Routes.signInScreen) {
                                 inclusive = true
                             }
                         }

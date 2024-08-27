@@ -14,6 +14,17 @@ class InteractionRepo : IInteractionRepo
     private val firestore = FirebaseFirestore.getInstance()
     private val dbService =  DatabaseService(firestore)
 
+    override suspend fun getAllInteractions(): Resource<List<Interaction>> {
+        return try{
+            val snapshot = firestore.collection("interactions").get().await()
+            val interactions = snapshot.toObjects(Interaction::class.java)
+            Resource.Success(interactions)
+        }catch (e: Exception){
+            e.printStackTrace()
+            Resource.Failure(e)
+        }
+    }
+
     override suspend fun getArtworkInteractions(artworkId: String) : Resource<List<Interaction>>
     {
         return try
@@ -41,7 +52,7 @@ class InteractionRepo : IInteractionRepo
         }
     }
 
-    override suspend fun getUserInteractions() : Resource<List<Interaction>>
+    override suspend fun getCurrentUserInteractions() : Resource<List<Interaction>>
     {
         return try
         {
@@ -69,6 +80,31 @@ class InteractionRepo : IInteractionRepo
             Resource.Failure(e)
         }
     }
+
+    override suspend fun getUserInteractions(userId: String): Resource<List<Interaction>> {
+        return try {
+            val markReference = firestore.collection("interactions")
+            val querySnapshot = markReference
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+
+            val interactions = querySnapshot.documents.map { document ->
+                Interaction(
+                    id = document.id,
+                    userId = document.getString("userId") ?: "",
+                    artworkId = document.getString("artworkId") ?: "",
+                    visitedByUser = document.getBoolean("visitedByUser") ?: false
+                )
+            }
+
+            Resource.Success(interactions)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Failure(e)
+        }
+    }
+
 
     override suspend fun markAsVisited(artworkId: String, artwork: Artwork) : Resource<String>
     {

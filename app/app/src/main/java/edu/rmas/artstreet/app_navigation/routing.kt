@@ -21,6 +21,7 @@ import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.screens.AddArtworkScreen
 import edu.rmas.artstreet.screens.ArtworkScreen
 import edu.rmas.artstreet.screens.ArtFeedScreen
+import edu.rmas.artstreet.screens.LeaderboardScreen
 import edu.rmas.artstreet.screens.MapScreen
 import edu.rmas.artstreet.screens.ProfileScreen
 import edu.rmas.artstreet.screens.SettingsScreen
@@ -177,9 +178,23 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
             val artworks = Gson().fromJson(artworksJson, Array<Artwork>::class.java).toList()
             ArtFeedScreen(artworks = artworks, navController = navController, artworkVM = artworkVM)
         }
+
+    //-----------------------------------------------------------------------------
+    // -[[ LEADERBOARD SCREEN ]]-
+        composable(Routes.leaderboardScreen)
+        {
+
+            artworkVM.getAllInteractions()
+
+            LeaderboardScreen (
+                authVM = authVM,
+                artworkVM = artworkVM,
+                navController = navController
+            )
+        }
     //-----------------------------------------------------------------------------
     // -[[ SETTINGS SCREEN ]]-
-        composable(Routes.settingsScreen){
+        composable(Routes.settingsScreen) {
             SettingsScreen(navController = navController)
         }
     }

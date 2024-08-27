@@ -19,32 +19,40 @@ class ArtworkVM: ViewModel()
 {
 // -----------------------------------------------
 // -[[ REPOSITORIES ]]-
-    val artworkRepo = ArtworkRepo()
-    val interactionRepo = InteractionRepo()
+    private val artworkRepo = ArtworkRepo()
+    private val interactionRepo = InteractionRepo()
 // -----------------------------------------------
 
     private val _artworkFlow = MutableStateFlow<Resource<String>?>(null)
-    val artworkFlow: StateFlow<Resource<String>?> = _artworkFlow
+    val artwork: StateFlow<Resource<String>?> = _artworkFlow
 
-    private val _artworks = MutableStateFlow<Resource<List<Artwork>>>(Resource.Success(emptyList()))
-    val artworks: StateFlow<Resource<List<Artwork>>> get() = _artworks
+    private val _artworksFlow = MutableStateFlow<Resource<List<Artwork>>>(Resource.Success(emptyList()))
+    val artworks: StateFlow<Resource<List<Artwork>>> get() = _artworksFlow
 
 
-    private val _userArtworks = MutableStateFlow<Resource<List<Artwork>>>(Resource.Success(emptyList()))
-    val userArtworks: StateFlow<Resource<List<Artwork>>> get() = _userArtworks
+    private val _userArtworksFlow = MutableStateFlow<Resource<List<Artwork>>>(Resource.Success(emptyList()))
+    val userArtworks: StateFlow<Resource<List<Artwork>>> get() = _userArtworksFlow
 
-    private val _newInteraction = MutableStateFlow<Resource<String>?>(null)
-    val newInteraction: StateFlow<Resource<String>?> = _newInteraction
+    private val _newInteractionFlow = MutableStateFlow<Resource<String>?>(null)
+    val newInteraction: StateFlow<Resource<String>?> = _newInteractionFlow
 
-    private val _interactions = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
-    val interactions: StateFlow<Resource<List<Interaction>>> get() = _interactions
+    private val _artworkInteractionsFlow = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
+    val artworkInteractions: StateFlow<Resource<List<Interaction>>> get() = _artworkInteractionsFlow
+
+
+    private val _userInteractionsFlow = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
+    val userInteractions: StateFlow<Resource<List<Interaction>>> get() = _userInteractionsFlow
+
+    private val _interactionsFlow = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
+    val interactions: StateFlow<Resource<List<Interaction>>> get() = _interactionsFlow
 
     init {
         getAllArtworks()
+        getAllInteractions()
     }
 
     fun getAllArtworks() = viewModelScope.launch {
-        _artworks.value = artworkRepo.getAllArtworks()
+        _artworksFlow.value = artworkRepo.getAllArtworks()
     }
 
     fun saveArtworkData(
@@ -68,28 +76,40 @@ class ArtworkVM: ViewModel()
     fun getUserArtworks(
         uid: String
     ) = viewModelScope.launch {
-        _userArtworks.value = artworkRepo.getCapturedByUserArtworks(uid)
+        _userArtworksFlow.value = artworkRepo.getCapturedByUserArtworks(uid)
     }
 
+// ------------------------------------------------------------------------------------------------------
+
     fun markAsVisited ( artworkId: String, artwork: Artwork) = viewModelScope.launch {
-        _newInteraction.value = interactionRepo.markAsVisited(artworkId, artwork)
+        _newInteractionFlow.value = interactionRepo.markAsVisited(artworkId, artwork)
     }
 
     fun markAsNotVisited(interactionId: String ) = viewModelScope.launch {
-        _newInteraction.value = interactionRepo.markAsNotVisited(interactionId)
+        _newInteractionFlow.value = interactionRepo.markAsNotVisited(interactionId)
+    }
+
+    fun getAllInteractions() = viewModelScope.launch {
+        _interactionsFlow.value = interactionRepo.getAllInteractions()
     }
 
     fun getArtworkInteractions ( artworkId: String ) = viewModelScope.launch {
-        _interactions.value = Resource.Loading
+        _artworkInteractionsFlow.value = Resource.Loading
         val result = interactionRepo.getArtworkInteractions(artworkId)
-        _interactions.value = result
+        _artworkInteractionsFlow.value = result
     }
 
     fun fetchUpdatedArtworkInteractions ( artworkId: String ) = viewModelScope.launch {
-        _interactions.value = Resource.Loading
+        _artworkInteractionsFlow.value = Resource.Loading
         interactionRepo.listenForInteractions(artworkId) { updatedInteractions ->
-            _interactions.value = updatedInteractions
+            _artworkInteractionsFlow.value = updatedInteractions
         }
+    }
+
+    fun getUserInteractions(userId: String) = viewModelScope.launch {
+        _userInteractionsFlow.value = Resource.Loading
+        val result = interactionRepo.getUserInteractions(userId)
+        _userInteractionsFlow.value = result
     }
 }
 
