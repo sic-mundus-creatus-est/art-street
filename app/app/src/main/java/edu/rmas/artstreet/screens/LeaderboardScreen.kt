@@ -1,13 +1,11 @@
 package edu.rmas.artstreet.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,11 +15,12 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -31,6 +30,8 @@ import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.LeaderboardList
+import edu.rmas.artstreet.screens.components.LeaderboardPicker
+import edu.rmas.artstreet.screens.components.TopAppBar
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
 
@@ -50,54 +51,49 @@ fun LeaderboardScreen( authVM: AuthVM, artworkVM: ArtworkVM, navController: NavC
 
 // -------------------------------------------------------------------------------------------------
 // >> USER INTERFACE
-    Box(modifier = Modifier.fillMaxSize())
-    {
-        Column (
-            modifier = Modifier
-                .padding(vertical = 25.dp, horizontal = 16.dp)
-                .align(Alignment.TopCenter)
-        ) {
+    Box( modifier = Modifier
+        .fillMaxSize()
+        .background(ColorPalette.BackgroundMainDarker)
+    ) {
+        TopAppBar(showSearchIcon = false)
+        Column( modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 57.dp),
+        )
+        {
+            LeaderboardPicker(isSharedLocationsSelected = isSharedLocationsSelected,
+                onSelectionChanged = { selected ->
+                isSharedLocationsSelected = selected
+            })
+
             Text(
-                text = "LEADERBOARD",
+                text = "Leaderboard",
                 style = TextStyle(
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-
-            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                Button(
-                    onClick = { isSharedLocationsSelected = true },
-                    modifier = Modifier.padding(end = 8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSharedLocationsSelected) ColorPalette.LightGray else Color.Transparent
-                    )
-                ) {
-                    Text(text = "Shared Locations")
-                }
-
-                Button(
-                    onClick = { isSharedLocationsSelected = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!isSharedLocationsSelected) Color.Gray else Color.Transparent
-                    )
-                ) {
-                    Text(text = "Visited Locations")
-                }
-            }
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontStyle = FontStyle.Italic,
+                    textAlign = TextAlign.Center,
+                    color = ColorPalette.Yellow,
+                    fontFamily = FontFamily.SansSerif
+                ),
+                modifier = Modifier.padding(start = 17.dp)
+            ) // maybe don't need this, idk
 
             LazyColumn(
-                modifier = Modifier.padding(top = 70.dp)
+                modifier = Modifier.padding(top = 2.dp)
             ) {
                 item {
                     LeaderboardList(
                         userWithPoints = userPointsMap,
-                        navController = navController
+                        navController = navController,
+                        isSharedLocationsSelected
                     )
                 }
             }
         }
+
     }
+
 // -------------------------------------------------------------------------------------------------
 // -> updates the userPointsMap based on the selection
     LaunchedEffect(artworksResource, interactionsResource, allUsersResource, isSharedLocationsSelected)
@@ -160,5 +156,3 @@ private fun updatePointsMapWithInteractionCount (
     }
 }
 // -------------------------------------------------------------------------------------------------
-
-// sve ovo je moglo da se napravi mnogo jednostavnije i optimalnije, al kad sam vec istrosio toliko vremena na ovu glupost, ostace ovako :)

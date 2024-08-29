@@ -20,6 +20,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -107,6 +109,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -643,9 +646,10 @@ fun ArtworkGalleryUploadField(
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
                             .size(24.dp)
-                            .clickable { selectedImages.value = selectedImages.value
-                                .toMutableList()
-                                .apply { remove(uri) }
+                            .clickable {
+                                selectedImages.value = selectedImages.value
+                                    .toMutableList()
+                                    .apply { remove(uri) }
                             }
                     )
                 }
@@ -1086,13 +1090,13 @@ fun ProfilePicture(
     borderWidth: Dp = 2.dp,
     cornerRadius: Dp = 4.dp,
     shadowElevation: Dp = 6.dp,
+    size: Dp = 100.dp
 ) {
     AsyncImage(
         model = imageUrl,
         contentDescription = "profile_picture",
         modifier = modifier
-            .width(100.dp)
-            .height(100.dp)
+            .size(size)
             .border(
                 borderWidth,
                 borderColor,
@@ -1100,6 +1104,7 @@ fun ProfilePicture(
             )
             .shadow(
                 shadowElevation,
+                shape = RoundedCornerShape(cornerRadius)
             )
             .clip(shape = RoundedCornerShape(cornerRadius)),
         contentScale = ContentScale.Crop
@@ -1136,7 +1141,6 @@ fun ProfileArtworkGrid(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
-        TheDivider()
         Spacer(modifier = Modifier.height(1.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(columnCount),
@@ -1415,6 +1419,63 @@ fun ArtworkPhotoGrid(images: List<String> )
 
 
 
+
+@Composable
+fun TopAppBar(showSearchIcon: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ColorPalette.BackgroundMainEvenDarker)
+            .padding(horizontal = 10.dp)
+            .padding(top = 10.dp, bottom = 10.dp)
+            .zIndex(1f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "Logo",
+                modifier = Modifier.size(40.dp)
+            )
+
+            Spacer(modifier = Modifier.width(5.dp))
+
+            Text(
+                text = "ArtStreet",
+                style = TextStyle(
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = ColorPalette.Yellow,
+                    fontFamily = FontFamily.Cursive
+                ),
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (showSearchIcon) {
+                IconButton(onClick = {
+                    // TODO: Handle search click here
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search",
+                        modifier = Modifier.size(30.dp),
+                        tint = ColorPalette.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+
 @Composable
 fun ArtFeedPost (
     artwork: Artwork,
@@ -1548,7 +1609,8 @@ fun Modifier.safeClick(
 fun UserLeaderboardRow(
     user: User,
     artworkCount: Int,
-    navController: NavController
+    navController: NavController,
+    isSharedLocationsList: Boolean
 ) {
     Box(
         modifier = Modifier
@@ -1558,35 +1620,56 @@ fun UserLeaderboardRow(
                 val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
                 navController.navigate(Routes.profileScreen + "/$encodedUserJson")
             }
-            .padding(16.dp)
+            .padding(top = 7.dp, start = 5.dp, end = 5.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            ProfilePicture(imageUrl = user.profilePicture, size = 70.dp)
+            Spacer(modifier = Modifier.width(5.dp))
             Column {
                 Text(
                     text = user.fullName,
                     style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.Yellow
                     )
                 )
                 val usernameText = user.username.let { "@$it" } ?: "@username"
                 Text(
                     text = usernameText,
                     style = TextStyle(
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = ColorPalette.LightGray
                     )
                 )
             }
-            Text(
-                text = "$artworkCount",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+            Spacer(modifier = Modifier.weight(1f))
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$artworkCount ",
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.Yellow,
+                        fontFamily = FontFamily.Monospace
+                    )
                 )
-            )
+                Image(
+                    painter = painterResource(
+                        id = if (isSharedLocationsList) R.drawable.shared_locations else R.drawable.visited_locations
+                    ),
+                    contentDescription = if (isSharedLocationsList) "Shared Location Image" else "Visited Location Image",
+                    modifier = Modifier
+                        .size(37.dp)
+                        .padding(start = 4.dp, end = 4.dp)
+                )
+            }
         }
     }
 }
@@ -1594,7 +1677,8 @@ fun UserLeaderboardRow(
 @Composable
 fun LeaderboardList(
     userWithPoints: Map<User, Int>,
-    navController: NavController
+    navController: NavController,
+    isSharedLocationsList: Boolean
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         val sortedEntries = userWithPoints.entries.sortedByDescending { it.value }
@@ -1602,7 +1686,67 @@ fun LeaderboardList(
             UserLeaderboardRow(
                 user = entry.key,
                 artworkCount = entry.value,
-                navController = navController
+                navController = navController,
+                isSharedLocationsList = isSharedLocationsList
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp)
+            ) {
+                TheDivider(thickness = 1.dp)
+            }
+        }
+    }
+}
+
+
+@Composable
+fun LeaderboardPicker(
+    isSharedLocationsSelected: Boolean,
+    onSelectionChanged: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Button(
+            onClick = { onSelectionChanged(true) },
+            shape = RectangleShape,
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(1.dp)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isSharedLocationsSelected) ColorPalette.BackgroundMainEvenDarker else ColorPalette.BackgroundMainLighter
+            ),
+        ) {
+            Text(
+                text = "Shared Locations",
+                style = TextStyle(
+                    fontSize = 17.sp,
+                    color = if (isSharedLocationsSelected) ColorPalette.Yellow else ColorPalette.LightGray,
+                    fontWeight = if (isSharedLocationsSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            )
+        }
+
+        Button(
+            onClick = { onSelectionChanged(false) },
+            shape = RectangleShape,
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(1.dp)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (!isSharedLocationsSelected) ColorPalette.BackgroundMainEvenDarker else ColorPalette.BackgroundMainLighter
+            ),
+        ) {
+            Text(
+                text = "Visited Locations",
+                style = TextStyle(
+                    fontSize = 17.sp,
+                    color = if (!isSharedLocationsSelected) ColorPalette.Yellow else ColorPalette.LightGray,
+                    fontWeight = if (!isSharedLocationsSelected) FontWeight.Bold else FontWeight.Normal
+                )
             )
         }
     }
