@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -35,7 +34,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
@@ -49,6 +47,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -158,10 +157,10 @@ fun MapScreen(
 
     val context = LocalContext.current
 
-    val filtersOn = remember {
+    val isFiltered = remember {
         mutableStateOf(false)
     }
-    val filteredArtworks = remember { mutableListOf<Artwork>() }
+    val filteredArtworks by artworkVM.filteredArtworks.collectAsState()
 
     DisposableEffect(context) {
         LocalBroadcastManager.getInstance(context)
@@ -197,21 +196,16 @@ fun MapScreen(
 
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
 
-    val isFilteredIndicator = remember {
-        mutableStateOf(false)
-    }
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
         sheetContent = {
             FilterScreen(
-                viewModel = authVM,
+                authVM = authVM,
+                artworkVM = artworkVM,
                 artworks = allArtworks,
                 sheetState = sheetState,
-                isFiltered = filtersOn,
-                isFilteredIndicator = isFilteredIndicator,
-                filteredArtwork = filteredArtworks,
-                artworkMarkers = artworkMarkers,
+                isFiltered = isFiltered,
                 userLocation = myLocation.value
             )
         },
@@ -283,7 +277,7 @@ fun MapScreen(
                                 coroutineScope.launch {
                                     drawerState.close()
                                     val artworksJson = Gson().toJson(
-                                        if (filtersOn.value)
+                                        if (isFiltered.value)
                                             filteredArtworks
                                         else
                                             artworkMarkers
@@ -372,7 +366,7 @@ fun MapScreen(
                                 snippet = "",
                             )
                         }
-                        if (!filtersOn.value) {
+                        if (filteredArtworks?.count()==0) {
                             artworkMarkers.forEach { artwork ->
                                 val icon = myPositionIndicator(
                                     context, R.drawable.artwork_marker
@@ -386,18 +380,21 @@ fun MapScreen(
                                 )
                             }
                         } else {
-                            filteredArtworks.forEach { artwork ->
-                                val icon = myPositionIndicator(
-                                    context, R.drawable.artwork_marker
-                                )
-                                ArtworkMarker(
-                                    artwork = artwork,
-                                    icon = icon,
-                                    artworksMarkers = filteredArtworks,
-                                    navController = navController,
-                                    notFiltered = false
-                                )
+                            filteredArtworks?.let { artworks ->
+                                val mutableArtworks = artworks.toMutableList()
+                                mutableArtworks.forEach { artwork ->
+                                    val icon = myPositionIndicator(context, R.drawable.artwork_marker)
+                                    ArtworkMarker(
+                                        artwork = artwork,
+                                        icon = icon,
+                                        artworksMarkers = mutableArtworks,
+                                        navController = navController,
+                                        notFiltered = false
+                                    )
+                                }
                             }
+
+
                         }
                     }
                     Column {

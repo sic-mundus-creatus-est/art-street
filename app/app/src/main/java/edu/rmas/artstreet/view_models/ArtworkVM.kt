@@ -46,6 +46,9 @@ class ArtworkVM: ViewModel()
     private val _interactionsFlow = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
     val interactions: StateFlow<Resource<List<Interaction>>> get() = _interactionsFlow
 
+    private val _filteredArtworks = MutableStateFlow<List<Artwork>?>(emptyList())
+    val filteredArtworks: StateFlow<List<Artwork>?> = _filteredArtworks
+
     init {
         getAllArtworks()
         getAllInteractions()
@@ -111,6 +114,14 @@ class ArtworkVM: ViewModel()
         val result = interactionRepo.getUserInteractions(userId)
         _userInteractionsFlow.value = result
     }
+
+// -------------------------------------------------------------------------------------------------
+    fun updateFilteredArtworks(newArtworks: List<Artwork>?) {
+        viewModelScope.launch {
+            _filteredArtworks.value = newArtworks
+        }
+    }
+
 }
 
 class ArtworkVMFactory: ViewModelProvider.Factory {

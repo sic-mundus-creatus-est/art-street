@@ -1,300 +1,223 @@
 package edu.rmas.artstreet.screens
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Checkbox
-import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.Icon
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
+import com.google.gson.Gson
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.view_models.AuthVM
-import com.google.gson.Gson
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.screens.components.ColorPalette
+import edu.rmas.artstreet.view_models.ArtworkVM
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun FilterScreen(
-    viewModel: AuthVM?,
-    artworks: MutableList<Artwork>,
+    authVM: AuthVM?,
+    artworkVM: ArtworkVM,
     sheetState: ModalBottomSheetState,
+    artworks: List<Artwork>,
     isFiltered: MutableState<Boolean>,
-    isFilteredIndicator: MutableState<Boolean>,
-    filteredArtwork: MutableList<Artwork>,
-    artworkMarkers: MutableList<Artwork>,
     userLocation: LatLng?
 ) {
     val context = LocalContext.current
-
-    viewModel?.getAllUsersData()
-    val allUsersResource = viewModel?.allUsers?.collectAsState()
-
-    val allUsersNames = remember {
-        mutableListOf<String>()
-    }
-
+    val coroutineScope = rememberCoroutineScope()
+    val showSearchScreen = remember { mutableStateOf(false) }
+    val selectedUser = remember { mutableStateOf<User?>(null) }
+    val rangeValues = remember { mutableStateOf(1000f) }
     val sharedPreferences = context.getSharedPreferences("filters", Context.MODE_PRIVATE)
     val options = sharedPreferences.getString("options", null)
     val range = sharedPreferences.getFloat("range", 1000f)
+    val allUsersData = remember { mutableStateOf<List<User>>(emptyList()) }
 
-    val initialCheckedState = remember {
-        mutableStateOf(List(allUsersNames.size) { false })
-    }
-    val rangeValues = remember { mutableFloatStateOf(1000f) }
-
-    val filtersSet = remember {
-        mutableStateOf(false)
-    }
-
-    if (isFilteredIndicator.value && options != null) {
-        val type = object : TypeToken<List<Boolean>>() {}.type
-        val savedOptions: List<Boolean> = Gson().fromJson(options, type) ?: emptyList()
-        initialCheckedState.value = savedOptions
-    }
-    if(!filtersSet.value) {
-        if (isFilteredIndicator.value) {
-            rangeValues.floatValue = range
-        }
-        filtersSet.value = true
-    }
-
-    val allUsersData = remember {
-        mutableListOf<User>()
-    }
-
-    val selectedOptions = remember {
-        mutableStateOf(initialCheckedState.value)
-    }
-
-    val isSet = remember { mutableStateOf(false) }
-
-    allUsersResource?.value.let {
-        when(it){
-            is Resource.Failure -> {}
-            is Resource.Success -> {
-                allUsersNames.clear()
-                allUsersData.clear()
-                allUsersNames.addAll(it.result.map { user -> user.fullName})
-                allUsersData.addAll(it.result)
-                if(!isSet.value) {
-                    initialCheckedState.value =
-                        List(allUsersNames.count()) { false }.toMutableList()
-                    isSet.value = true
-                }
+    LaunchedEffect(Unit) {
+        authVM?.getAllUsersData()
+        authVM?.allUsers?.collect { resource ->
+            if (resource is Resource.Success) {
+                allUsersData.value = resource.result
             }
-            Resource.Loading -> {}
-            null -> {}
+        }
+        options?.let {
+            val savedUser = Gson().fromJson(it, User::class.java)
+            selectedUser.value = savedUser
+        }
+        rangeValues.value = if (options != null) range else 1000f
+    }
+
+    if (showSearchScreen.value) {
+        UserSearchScreen(
+            allUsersData = allUsersData.value,
+            onUserSelected = { user ->
+                selectedUser.value = user
+                showSearchScreen.value = false
+            },
+            onDismiss = { showSearchScreen.value = false }
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(ColorPalette.BackgroundMainLighter)
+                .border(
+                    width = 7.dp,
+                    color = ColorPalette.BackgroundMainEvenDarker,
+                    shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 40.dp, horizontal = 16.dp)
+            ) {
+                Text(
+                    text = "Shared By User:",
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { showSearchScreen.value = true },
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ColorPalette.Yellow,
+                        contentColor = ColorPalette.White,
+                    ),
+                    shape = RectangleShape
+                ) {
+                    Text(
+                        text = selectedUser.value?.let { "${it.fullName} [${it.username}]" }
+                            ?: "Search for a username or full name",
+                        modifier = Modifier.padding(vertical = 14.dp),
+                        style = TextStyle(color = ColorPalette.Secondary)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Distance",
+                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
+                    )
+                    Text(
+                        text = if (rangeValues.value != 1000f)
+                            "${rangeValues.value.toBigDecimal().setScale(1, RoundingMode.UP)}m"
+                        else "Unlimited",
+                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                RangeSliderExample(rangeValues = rangeValues)
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                CustomFilterButton {
+                    applyFilters(
+                        artworkVM = artworkVM,
+                        artworks = artworks,
+                        rangeValues = rangeValues,
+                        selectedUser = selectedUser.value,
+                        userLocation = userLocation,
+                        isFiltered = isFiltered,
+                        sharedPreferences = sharedPreferences,
+                        coroutineScope = coroutineScope,
+                        sheetState = sheetState
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                CustomResetFilters {
+                    resetFilters(
+                        artworkVM = artworkVM,
+                        isFiltered = isFiltered,
+                        selectedUser = selectedUser,
+                        rangeValues = rangeValues,
+                        sharedPreferences = sharedPreferences,
+                        coroutineScope = coroutineScope,
+                        sheetState = sheetState
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
-    val coroutineScope = rememberCoroutineScope()
+}
 
-    val expanded = remember { mutableStateOf(false) }
+
+@Composable
+fun UserSearchScreen(
+    allUsersData: List<User>,
+    onUserSelected: (User) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf(TextFieldValue()) }
+    val filteredUsers = remember(searchQuery.text) {
+        allUsersData.filter {
+            it.fullName.contains(searchQuery.text, ignoreCase = true) ||
+                    it.username.contains(searchQuery.text, ignoreCase = true)
+        }
+    }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 40.dp, horizontal = 16.dp)
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
-        Text(
-            text = "Author",
-            style = TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+        TextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Search by name or username") },
+            modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(modifier = Modifier.height(8.dp))
-
-
-        Column{
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = { expanded.value = !expanded.value })
-                    .background(ColorPalette.Yellow, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Text("Choose Authors")
-                Icon(
-                    if (expanded.value) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                    contentDescription = "Dropdown icon"
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded.value,
-                onDismissRequest = { expanded.value = false },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(ColorPalette.White)
-            ) {
-                allUsersNames.forEachIndexed { index, option ->
-                    DropdownMenuItem(onClick = {
-                        val updatedCheckedState = initialCheckedState.value.toMutableList()
-                        updatedCheckedState[index] = !updatedCheckedState[index]
-                        initialCheckedState.value = updatedCheckedState
-                        selectedOptions.value = updatedCheckedState
-                    },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = initialCheckedState.value[index],
-                                onCheckedChange = {
-                                    val updatedCheckedState = initialCheckedState.value.toMutableList()
-                                    updatedCheckedState[index] = it
-                                    initialCheckedState.value = updatedCheckedState
-                                    selectedOptions.value = updatedCheckedState
-                                }
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(option)
-                        }
-                    }
-                }
-            }
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Distance",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-            Text(
-                text =
-                if(rangeValues.floatValue != 1000f)
-                    rangeValues.floatValue.toBigDecimal().setScale(1, RoundingMode.UP).toString() + "m"
-                else
-                    "Unlimited"
-                ,style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        RangeSliderExample(rangeValues = rangeValues)
-        Spacer(modifier = Modifier.height(30.dp))
-        CustomFilterButton {
-            artworkMarkers.clear()
-            val filteredArtworks = artworks.toMutableList()
 
-            if (rangeValues.floatValue != 1000f) {
-                filteredArtworks.retainAll { artwork ->
-                    calculateDistance(
-                        userLocation!!.latitude,
-                        userLocation.longitude,
-                        artwork.location.latitude,
-                        artwork.location.longitude
-                    ) <= rangeValues.floatValue
+        LazyColumn {
+            items(filteredUsers) { user ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onUserSelected(user)
+                        }
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(text = "${user.fullName} [${user.username}]")
                 }
-                with(sharedPreferences.edit()) {
-                    putFloat("range", rangeValues.floatValue)
-                    apply()
-                }
-            }
-
-
-            if (selectedOptions.value.indexOf(true) != -1) {
-                val selectedAuthors = allUsersData.filterIndexed { index, _ ->
-                    selectedOptions.value[index]
-                }
-                val selectedIndices = selectedAuthors.map { item -> item.id }
-                filteredArtworks.retainAll { it.capturerId in selectedIndices }
-
-
-
-                val selectedOptionsJson = Gson().toJson(selectedOptions.value)
-                with(sharedPreferences.edit()) {
-                    putString("options", selectedOptionsJson)
-                    apply()
-                }
-            }
-            filteredArtwork.clear()
-            filteredArtwork.addAll(filteredArtworks)
-
-            isFiltered.value = false
-            isFiltered.value = true
-
-            coroutineScope.launch {
-                sheetState.hide()
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        CustomResetFilters {
-            artworkMarkers.clear()
-            artworkMarkers.addAll(artworks)
-
-            initialCheckedState.value =
-                List(allUsersNames.count()) { false }.toMutableList()
-            rangeValues.floatValue = 1000f
-
-            isFiltered.value = true
-            isFiltered.value = false
-            isFilteredIndicator.value = false
-
-            with(sharedPreferences.edit()) {
-                putFloat("range", 1000f)
-                putString("options", null)
-                apply()
-            }
-
-            coroutineScope.launch {
-                sheetState.hide()
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -302,15 +225,15 @@ fun FilterScreen(
 fun RangeSliderExample(
     rangeValues: MutableState<Float>
 ) {
-    androidx.compose.material3.Slider(
+    Slider(
         value = rangeValues.value,
         onValueChange = { rangeValues.value = it },
-        valueRange = 0f..1000f,
+        valueRange = 1f..1000f,
         steps = 50,
         colors = SliderDefaults.colors(
-            thumbColor = ColorPalette.Secondary,
-            activeTrackColor = ColorPalette.Purple500,
-            inactiveTrackColor = ColorPalette.Purple200
+            thumbColor = ColorPalette.Yellow,
+            activeTrackColor = ColorPalette.BackgroundMainEvenDarker,
+            inactiveTrackColor = ColorPalette.BackgroundMainDarker
         )
     )
 }
@@ -318,8 +241,8 @@ fun RangeSliderExample(
 @Composable
 fun CustomFilterButton(
     onClick: () -> Unit
-){
-    androidx.compose.material3.Button(
+) {
+    Button(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
@@ -330,14 +253,14 @@ fun CustomFilterButton(
             contentColor = ColorPalette.Black,
             disabledContainerColor = ColorPalette.Secondary,
             disabledContentColor = ColorPalette.White
-        ),
-
-        ) {
+        )
+    ) {
         Text(
             "Filter",
             style = TextStyle(
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = ColorPalette.Secondary
             )
         )
     }
@@ -346,8 +269,8 @@ fun CustomFilterButton(
 @Composable
 fun CustomResetFilters(
     onClick: () -> Unit
-){
-    androidx.compose.material3.Button(
+) {
+    Button(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
@@ -358,21 +281,93 @@ fun CustomResetFilters(
             contentColor = ColorPalette.Black,
             disabledContainerColor = ColorPalette.Secondary,
             disabledContentColor = ColorPalette.White
-        ),
-
-        ) {
+        )
+    ) {
         Text(
             "Reset Filters",
             style = TextStyle(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorPalette.White
+                color = ColorPalette.Secondary
             )
         )
     }
 }
 
-fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+@OptIn(ExperimentalMaterialApi::class)
+private fun applyFilters(
+    artworkVM: ArtworkVM,
+    artworks: List<Artwork>,
+    rangeValues: MutableState<Float>,
+    selectedUser: User?,
+    userLocation: LatLng?,
+    isFiltered: MutableState<Boolean>,
+    sharedPreferences: SharedPreferences,
+    coroutineScope: CoroutineScope,
+    sheetState: ModalBottomSheetState
+) {
+    artworkVM.updateFilteredArtworks(emptyList())
+
+    val filteredList = mutableListOf<Artwork>().apply {
+        if (rangeValues.value != 1000f && userLocation != null) {
+            addAll(
+                artworks.filter { artwork ->
+                    calculateDistance(
+                        userLocation.latitude,
+                        userLocation.longitude,
+                        artwork.location.latitude,
+                        artwork.location.longitude
+                    ) <= rangeValues.value
+                }
+            )
+            sharedPreferences.edit().putFloat("range", rangeValues.value).apply()
+        } else {
+            addAll(artworks)
+        }
+
+        selectedUser?.let { user ->
+            retainAll { it.capturerId == user.id }
+            sharedPreferences.edit().putString("options", Gson().toJson(user)).apply()
+        }
+    }
+
+    artworkVM.updateFilteredArtworks(filteredList)
+    isFiltered.value = true
+
+    coroutineScope.launch {
+        sheetState.hide()
+    }
+}
+
+
+
+
+@OptIn(ExperimentalMaterialApi::class)
+private fun resetFilters(
+    artworkVM: ArtworkVM,
+    isFiltered: MutableState<Boolean>,
+    selectedUser: MutableState<User?>,
+    rangeValues: MutableState<Float>,
+    sharedPreferences: SharedPreferences,
+    coroutineScope: CoroutineScope,
+    sheetState: ModalBottomSheetState
+) {
+    selectedUser.value = null
+    rangeValues.value = 1000f
+    artworkVM.updateFilteredArtworks(emptyList())
+    sharedPreferences.edit().clear().apply()
+    isFiltered.value = false
+
+    coroutineScope.launch {
+        sheetState.hide()
+    }
+}
+
+
+
+
+fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
+{//Haversine formula
     val earthRadius = 6371000.0
 
     val dLat = Math.toRadians(lat2 - lat1)
