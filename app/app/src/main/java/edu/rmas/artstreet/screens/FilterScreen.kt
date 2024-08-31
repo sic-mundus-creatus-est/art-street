@@ -11,24 +11,33 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
+import edu.rmas.artstreet.R
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.view_models.AuthVM
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.screens.components.ColorPalette
+import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.view_models.ArtworkVM
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -37,88 +46,81 @@ import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun FilterScreen(
+fun FilterScreen (
     authVM: AuthVM?,
     artworkVM: ArtworkVM,
     sheetState: ModalBottomSheetState,
     artworks: List<Artwork>,
-    isFiltered: MutableState<Boolean>,
     userLocation: LatLng?
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val showSearchScreen = remember { mutableStateOf(false) }
+
+    val showFilterByUserSection = remember { mutableStateOf(false) }
+
     val selectedUser = remember { mutableStateOf<User?>(null) }
-    val rangeValues = remember { mutableStateOf(1000f) }
-    val sharedPreferences = context.getSharedPreferences("filters", Context.MODE_PRIVATE)
-    val options = sharedPreferences.getString("options", null)
-    val range = sharedPreferences.getFloat("range", 1000f)
+    val selectedDistance = remember { mutableStateOf(1000f) }
+
+    val sharedPrefsFilters = context.getSharedPreferences("filters", Context.MODE_PRIVATE)
+    val sharedPrefsOptions = sharedPrefsFilters.getString("options", null)
+    val sharedPrefsRange = sharedPrefsFilters.getFloat("range", 1000f)
+
     val allUsersData = remember { mutableStateOf<List<User>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        authVM?.getAllUsersData()
-        authVM?.allUsers?.collect { resource ->
-            if (resource is Resource.Success) {
-                allUsersData.value = resource.result
-            }
-        }
-        options?.let {
-            val savedUser = Gson().fromJson(it, User::class.java)
-            selectedUser.value = savedUser
-        }
-        rangeValues.value = if (options != null) range else 1000f
-    }
-
-    if (showSearchScreen.value) {
-        UserSearchScreen(
-            allUsersData = allUsersData.value,
-            onUserSelected = { user ->
-                selectedUser.value = user
-                showSearchScreen.value = false
-            },
-            onDismiss = { showSearchScreen.value = false }
+// -------------------------------------------------------------------------------------------------
+// >> USER INTERFACE
+    Box ( modifier = Modifier
+        .fillMaxSize()
+        .background(ColorPalette.BackgroundMainLighter)
+        .border(
+            width = 4.dp,
+            color = ColorPalette.BackgroundMainDarker,
+            shape = RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
         )
-    } else {
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(ColorPalette.BackgroundMainLighter)
-                .border(
-                    width = 7.dp,
-                    color = ColorPalette.BackgroundMainEvenDarker,
-                    shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
-                )
-        ) {
-            Column(
+                .padding(vertical = 19.dp)
+                .align(Alignment.TopCenter)
+                .height(5.dp)
+                .width(124.dp)
+                .background(ColorPalette.LightGray, RoundedCornerShape(5.dp))
+        ) {}
+        if (showFilterByUserSection.value)
+        {// -[[ FILTER BY USER SECTION ]]-
+            FilterByUser (
+                allUsersData = allUsersData.value,
+                onUserSelected = { user ->
+                    selectedUser.value = user
+                    showFilterByUserSection.value = false
+                },
+                onDismiss = { showFilterByUserSection.value = false }
+            )
+        } else {
+            Column (// -[[ ALL FILTERING OPTIONS SECTION ]]-
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 40.dp, horizontal = 16.dp)
+                    .padding(vertical = 47.dp, horizontal = 17.dp)
             ) {
-                Text(
-                    text = "Shared By User:",
-                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = { showSearchScreen.value = true },
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ColorPalette.Yellow,
-                        contentColor = ColorPalette.White,
-                    ),
-                    shape = RectangleShape
-                ) {
-                    Text(
-                        text = selectedUser.value?.let { "${it.fullName} [${it.username}]" }
-                            ?: "Search for a username or full name",
-                        modifier = Modifier.padding(vertical = 14.dp),
-                        style = TextStyle(color = ColorPalette.Secondary)
+            // -------------------------------------------------------------------------------------
+            // PARAMETER: -[[ USER ]]-
+                Text (
+                    text = "Shared By User",
+                    style = TextStyle (
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.Yellow,
+                        fontStyle = FontStyle.Italic
                     )
-                }
+                )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                UserButton(
+                    selectedUser = selectedUser,
+                    showFilterByUserSection = showFilterByUserSection
+                )
+            // -------------------------------------------------------------------------------------
+            // PARAMETER: -[[ DISTANCE ]]-
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -127,29 +129,38 @@ fun FilterScreen(
                 ) {
                     Text(
                         "Distance",
-                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorPalette.Yellow,
+                            fontStyle = FontStyle.Italic
+                        )
                     )
                     Text(
-                        text = if (rangeValues.value != 1000f)
-                            "${rangeValues.value.toBigDecimal().setScale(1, RoundingMode.UP)}m"
-                        else "Unlimited",
-                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow)
+                        text = if (selectedDistance.value != 1000f)
+                            "${selectedDistance.value.toBigDecimal().setScale(1, RoundingMode.UP)} m"
+                        else "Unlimited (1 km or further)",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = ColorPalette.LightGray,
+                            fontFamily = FontFamily.Monospace
+                        )
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                RangeSliderExample(rangeValues = rangeValues)
 
+                DistanceRangeSlider(rangeValues = selectedDistance)
+            // -------------------------------------------------------------------------------------
+            // -[[ APPLY AND RESET FILTERS BUTTONS ]]-
                 Spacer(modifier = Modifier.height(30.dp))
 
-                CustomFilterButton {
+                ApplyFiltersButton {
                     applyFilters(
                         artworkVM = artworkVM,
                         artworks = artworks,
-                        rangeValues = rangeValues,
+                        rangeValues = selectedDistance,
                         selectedUser = selectedUser.value,
                         userLocation = userLocation,
-                        isFiltered = isFiltered,
-                        sharedPreferences = sharedPreferences,
+                        sharedPreferences = sharedPrefsFilters,
                         coroutineScope = coroutineScope,
                         sheetState = sheetState
                     )
@@ -157,27 +168,49 @@ fun FilterScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                CustomResetFilters {
+                ResetFiltersButton {
                     resetFilters(
                         artworkVM = artworkVM,
-                        isFiltered = isFiltered,
                         selectedUser = selectedUser,
-                        rangeValues = rangeValues,
-                        sharedPreferences = sharedPreferences,
+                        rangeValues = selectedDistance,
+                        sharedPreferences = sharedPrefsFilters,
                         coroutineScope = coroutineScope,
                         sheetState = sheetState
                     )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
+            // -------------------------------------------------------------------------------------
             }
         }
     }
+// -------------------------------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------------------
+    LaunchedEffect(Unit)
+    {
+        authVM?.getAllUsersData()
+        authVM?.allUsers?.collect { resource ->
+            if (resource is Resource.Success)
+            {
+                allUsersData.value = resource.result
+            }
+        }
+        sharedPrefsOptions?.let {
+            val savedUser = Gson().fromJson(it, User::class.java)
+            selectedUser.value = savedUser
+        }
+
+        selectedDistance.value = if (sharedPrefsOptions != null) sharedPrefsRange else 1000f
+    }
+    // -------------------------------------------------------------------------------------
+
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserSearchScreen(
+fun FilterByUser (
     allUsersData: List<User>,
     onUserSelected: (User) -> Unit,
     onDismiss: () -> Unit
@@ -193,104 +226,226 @@ fun UserSearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(vertical = 34.dp, horizontal = 17.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Filter by User",
+                style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorPalette.Yellow, fontStyle = FontStyle.Italic)
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close, // Or Icons.Filled.ArrowBack
+                    contentDescription = "Close",
+                    tint = ColorPalette.Yellow
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(5.dp))
+
         TextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            label = { Text("Search by name or username") },
+            label = { Text("Type a name or username") },
+            singleLine = true,
+            maxLines = 1,
             modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.textFieldColors(
+                focusedTextColor = ColorPalette.Black,
+                cursorColor = ColorPalette.Secondary,
+                focusedIndicatorColor = ColorPalette.Yellow,
+                unfocusedIndicatorColor = ColorPalette.LightGray,
+                focusedLabelColor = ColorPalette.DarkGrey,
+                unfocusedLabelColor = ColorPalette.LightGray,
+            )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         LazyColumn {
             items(filteredUsers) { user ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onUserSelected(user)
-                        }
-                        .padding(vertical = 8.dp)
-                ) {
-                    Text(text = "${user.fullName} [${user.username}]")
-                }
+                TheDivider(thickness = 1.dp)
+                UserRow(user = user, onUserSelected = onUserSelected)
             }
         }
     }
 }
 
 @Composable
-fun RangeSliderExample(
+fun UserRow(
+    user: User,
+    onUserSelected: (User) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onUserSelected(user) }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = user.profilePicture.ifEmpty { R.drawable.user},
+            contentDescription = "${user.fullName}'s profile picture",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .width(47.dp)
+                .height(47.dp)
+                .clip(RoundedCornerShape(4.dp))
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column {
+            Text(
+                text = user.fullName,
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorPalette.LightGray)
+            )
+            Text(
+                text = "@${user.username}",
+                style = TextStyle(fontSize = 14.sp, color = ColorPalette.LightGray)
+            )
+        }
+    }
+}
+
+
+@Composable
+fun UserButton(
+    selectedUser: MutableState<User?>,
+    showFilterByUserSection: MutableState<Boolean>
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 7.dp, horizontal = 17.dp)
+            .background(ColorPalette.White, RoundedCornerShape(4.dp))
+            .border(
+                width = 2.dp,
+                color = ColorPalette.BackgroundMainDarker,
+                shape = RoundedCornerShape(4.dp)
+            )
+    ) {
+        UserRow(
+            user = selectedUser.value ?: User(
+                fullName = "Anyone",
+                username = "username",
+                profilePicture = ""
+            ),
+            onUserSelected = { showFilterByUserSection.value = true }
+        )
+
+        if (selectedUser.value != null) {
+            IconButton(
+                onClick = {
+                    selectedUser.value = null
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = ColorPalette.DarkGrey
+                )
+            }
+        }
+    }
+}
+
+
+
+
+
+@Composable
+fun DistanceRangeSlider(
     rangeValues: MutableState<Float>
 ) {
     Slider(
         value = rangeValues.value,
         onValueChange = { rangeValues.value = it },
-        valueRange = 1f..1000f,
-        steps = 50,
+        valueRange = 0f..1000f,
+        steps = 19,  // Steps between 0 and 1000, stepping by 50
         colors = SliderDefaults.colors(
             thumbColor = ColorPalette.Yellow,
-            activeTrackColor = ColorPalette.BackgroundMainEvenDarker,
-            inactiveTrackColor = ColorPalette.BackgroundMainDarker
+            activeTrackColor = ColorPalette.Yellow,
+            inactiveTrackColor = ColorPalette.White,
+            activeTickColor = ColorPalette.BackgroundMainDarker
         )
     )
 }
 
+
 @Composable
-fun CustomFilterButton(
+fun ApplyFiltersButton(
     onClick: () -> Unit
 ) {
-    Button(
-        onClick = onClick,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
-            .background(ColorPalette.Yellow, RoundedCornerShape(30.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = ColorPalette.Yellow,
-            contentColor = ColorPalette.Black,
-            disabledContainerColor = ColorPalette.Secondary,
-            disabledContentColor = ColorPalette.White
-        )
+            .wrapContentSize(Alignment.Center)
     ) {
-        Text(
-            "Filter",
-            style = TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = ColorPalette.Secondary
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .width(400.dp)
+                .height(54.dp)
+                .background(ColorPalette.Yellow, RoundedCornerShape(5.dp)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = ColorPalette.Yellow,
+                contentColor = ColorPalette.Black,
+                disabledContainerColor = ColorPalette.Secondary,
+                disabledContentColor = ColorPalette.White
             )
-        )
+        ) {
+            Text(
+                "Apply Filters",
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorPalette.Secondary
+                )
+            )
+        }
     }
 }
 
 @Composable
-fun CustomResetFilters(
+fun ResetFiltersButton(
     onClick: () -> Unit
 ) {
-    Button(
-        onClick = onClick,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
-            .background(ColorPalette.Yellow, RoundedCornerShape(30.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = ColorPalette.Yellow,
-            contentColor = ColorPalette.Black,
-            disabledContainerColor = ColorPalette.Secondary,
-            disabledContentColor = ColorPalette.White
-        )
+            .wrapContentSize(Alignment.Center)
     ) {
-        Text(
-            "Reset Filters",
-            style = TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = ColorPalette.Secondary
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .width(240.dp)
+                .height(37.dp)
+                .background(ColorPalette.Yellow, RoundedCornerShape(10.dp)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = ColorPalette.Yellow,
+                contentColor = ColorPalette.Black,
+                disabledContainerColor = ColorPalette.Secondary,
+                disabledContentColor = ColorPalette.White
             )
-        )
+        ) {
+            Text(
+                "Reset Filters",
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorPalette.Secondary
+                )
+            )
+        }
     }
 }
 
@@ -301,12 +456,11 @@ private fun applyFilters(
     rangeValues: MutableState<Float>,
     selectedUser: User?,
     userLocation: LatLng?,
-    isFiltered: MutableState<Boolean>,
     sharedPreferences: SharedPreferences,
     coroutineScope: CoroutineScope,
     sheetState: ModalBottomSheetState
 ) {
-    artworkVM.updateFilteredArtworks(emptyList())
+    artworkVM.updateFilteredArtworks(emptyList(), false)
 
     val filteredList = mutableListOf<Artwork>().apply {
         if (rangeValues.value != 1000f && userLocation != null) {
@@ -331,8 +485,7 @@ private fun applyFilters(
         }
     }
 
-    artworkVM.updateFilteredArtworks(filteredList)
-    isFiltered.value = true
+    artworkVM.updateFilteredArtworks(filteredList, true)
 
     coroutineScope.launch {
         sheetState.hide()
@@ -345,7 +498,6 @@ private fun applyFilters(
 @OptIn(ExperimentalMaterialApi::class)
 private fun resetFilters(
     artworkVM: ArtworkVM,
-    isFiltered: MutableState<Boolean>,
     selectedUser: MutableState<User?>,
     rangeValues: MutableState<Float>,
     sharedPreferences: SharedPreferences,
@@ -354,9 +506,8 @@ private fun resetFilters(
 ) {
     selectedUser.value = null
     rangeValues.value = 1000f
-    artworkVM.updateFilteredArtworks(emptyList())
+    artworkVM.updateFilteredArtworks(emptyList(), false)
     sharedPreferences.edit().clear().apply()
-    isFiltered.value = false
 
     coroutineScope.launch {
         sheetState.hide()

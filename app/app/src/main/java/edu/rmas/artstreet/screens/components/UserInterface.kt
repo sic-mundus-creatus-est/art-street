@@ -40,6 +40,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1482,14 +1483,17 @@ fun ArtFeedPost (
     artworkScreen: () -> Unit,
     artworkOnMap: () -> Unit
 ) {
-    // State to control the expanded/collapsed state of the description
-    var isDescriptionExpanded by remember { mutableStateOf(false) }
 
     Column (
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 ColorPalette.BackgroundMainLighter,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .border(
+                width = 2.dp,
+                color = ColorPalette.BackgroundMainEvenDarker,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable { artworkScreen() }
@@ -1510,11 +1514,10 @@ fun ArtFeedPost (
             )
         }
 
-        // Title and IconButton row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),  // Space between image and text row
+                .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
@@ -1750,6 +1753,18 @@ fun LeaderboardPicker(
             )
         }
     }
+}
+
+
+@Composable
+fun FilterStatusBadge(isOn: Boolean) {
+    val badgeColor = if (isOn) Color.Green else ColorPalette.LightGray
+    Box(
+        modifier = Modifier
+            .size(12.dp)
+            .background(badgeColor, shape = CircleShape)
+            .clip(CircleShape)
+    )
 }
 
 

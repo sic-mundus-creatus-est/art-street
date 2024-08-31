@@ -4,11 +4,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -58,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.CameraPosition
@@ -79,6 +83,7 @@ import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.data.services.LocationService
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.ArtworkMarker
+import edu.rmas.artstreet.screens.components.FilterStatusBadge
 import edu.rmas.artstreet.screens.components.SearchBar
 import edu.rmas.artstreet.screens.components.SignUpInButton
 import edu.rmas.artstreet.screens.components.MainUserInfo
@@ -157,10 +162,8 @@ fun MapScreen(
 
     val context = LocalContext.current
 
-    val isFiltered = remember {
-        mutableStateOf(false)
-    }
     val filteredArtworks by artworkVM.filteredArtworks.collectAsState()
+    val filtersOn by artworkVM.filtersOn.collectAsState()
 
     DisposableEffect(context) {
         LocalBroadcastManager.getInstance(context)
@@ -205,7 +208,6 @@ fun MapScreen(
                 artworkVM = artworkVM,
                 artworks = allArtworks,
                 sheetState = sheetState,
-                isFiltered = isFiltered,
                 userLocation = myLocation.value
             )
         },
@@ -277,7 +279,7 @@ fun MapScreen(
                                 coroutineScope.launch {
                                     drawerState.close()
                                     val artworksJson = Gson().toJson(
-                                        if (isFiltered.value)
+                                        if (filtersOn)
                                             filteredArtworks
                                         else
                                             artworkMarkers
@@ -366,7 +368,7 @@ fun MapScreen(
                                 snippet = "",
                             )
                         }
-                        if (filteredArtworks?.count()==0) {
+                        if (!filtersOn) {
                             artworkMarkers.forEach { artwork ->
                                 val icon = myPositionIndicator(
                                     context, R.drawable.artwork_marker
@@ -447,29 +449,30 @@ fun MapScreen(
                                     shape = RoundedCornerShape(10.dp)
                                 )
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            sheetState.show()
-                                        }
-                                    },
+                                Box(
                                     modifier = Modifier
-                                        .width(50.dp)
-                                        .height(50.dp)
+                                        .size(50.dp)
                                         .border(
                                             1.dp,
                                             ColorPalette.BackgroundMainDarker,
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(10.dp)
                                         )
-                                        .clip(
-                                            RoundedCornerShape(10.dp)
-                                        ),
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            coroutineScope.launch {
+                                                sheetState.show()
+                                            }
+                                        }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.FilterList,
                                         contentDescription = "Filter",
-                                        tint = ColorPalette.Yellow
+                                        tint = ColorPalette.Yellow,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .size(30.dp)
                                     )
+                                    FilterStatusBadge(isOn = filtersOn)
                                 }
                             }
 

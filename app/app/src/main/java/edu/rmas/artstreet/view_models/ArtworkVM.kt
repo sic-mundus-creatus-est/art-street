@@ -46,8 +46,12 @@ class ArtworkVM: ViewModel()
     private val _interactionsFlow = MutableStateFlow<Resource<List<Interaction>>>(Resource.Success(emptyList()))
     val interactions: StateFlow<Resource<List<Interaction>>> get() = _interactionsFlow
 
+// -------------------------------------------------------------------------------------------------
     private val _filteredArtworks = MutableStateFlow<List<Artwork>?>(emptyList())
     val filteredArtworks: StateFlow<List<Artwork>?> = _filteredArtworks
+    private val _filtersOn = MutableStateFlow(false)
+    val filtersOn: StateFlow<Boolean> get() = _filtersOn
+// -------------------------------------------------------------------------------------------------
 
     init {
         getAllArtworks()
@@ -116,9 +120,10 @@ class ArtworkVM: ViewModel()
     }
 
 // -------------------------------------------------------------------------------------------------
-    fun updateFilteredArtworks(newArtworks: List<Artwork>?) {
+    fun updateFilteredArtworks(newArtworks: List<Artwork>?, isFiltered: Boolean) {
         viewModelScope.launch {
             _filteredArtworks.value = newArtworks
+            _filtersOn.value = isFiltered
         }
     }
 
