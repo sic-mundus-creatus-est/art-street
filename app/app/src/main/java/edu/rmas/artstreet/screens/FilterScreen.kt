@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -66,6 +65,8 @@ fun FilterScreen (
     val sharedPrefsRange = sharedPrefsFilters.getFloat("range", 1000f)
 
     val allUsersData = remember { mutableStateOf<List<User>>(emptyList()) }
+
+    val isDistanceSliderEnabled = userLocation != null
 
 // -------------------------------------------------------------------------------------------------
 // >> USER INTERFACE
@@ -132,14 +133,18 @@ fun FilterScreen (
                         style = TextStyle(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ColorPalette.Yellow,
+                            color = if (isDistanceSliderEnabled) ColorPalette.Yellow else ColorPalette.LightGray,
                             fontStyle = FontStyle.Italic
                         )
                     )
                     Text(
-                        text = if (selectedDistance.value != 1000f)
-                            "${selectedDistance.value.toBigDecimal().setScale(1, RoundingMode.UP)} m"
-                        else "Unlimited (1 km or further)",
+                        text = if (isDistanceSliderEnabled) {
+                            if (selectedDistance.value != 1000f)
+                                "${selectedDistance.value.toBigDecimal().setScale(1, RoundingMode.UP)} m"
+                            else "Unlimited (1 km or further)"
+                        } else {
+                            "Turn on location for this option"
+                        },
                         style = TextStyle(
                             fontSize = 14.sp,
                             color = ColorPalette.LightGray,
@@ -148,7 +153,7 @@ fun FilterScreen (
                     )
                 }
 
-                DistanceRangeSlider(rangeValues = selectedDistance)
+                DistanceRangeSlider(rangeValues = selectedDistance, isDistanceSliderEnabled)
             // -------------------------------------------------------------------------------------
             // -[[ APPLY AND RESET FILTERS BUTTONS ]]-
                 Spacer(modifier = Modifier.height(30.dp))
@@ -239,9 +244,9 @@ fun FilterByUser (
             )
             IconButton(onClick = onDismiss) {
                 Icon(
-                    imageVector = Icons.Default.Close, // Or Icons.Filled.ArrowBack
+                    imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = ColorPalette.Yellow
+                    tint = ColorPalette.BackgroundMainEvenDarker
                 )
             }
         }
@@ -364,21 +369,35 @@ fun UserButton(
 
 @Composable
 fun DistanceRangeSlider(
-    rangeValues: MutableState<Float>
+    rangeValues: MutableState<Float>,
+    isEnabled: Boolean
 ) {
-    Slider(
-        value = rangeValues.value,
-        onValueChange = { rangeValues.value = it },
-        valueRange = 0f..1000f,
-        steps = 19,  // Steps between 0 and 1000, stepping by 50
-        colors = SliderDefaults.colors(
+    val sliderColors = if (isEnabled) {
+        SliderDefaults.colors(
             thumbColor = ColorPalette.Yellow,
             activeTrackColor = ColorPalette.Yellow,
             inactiveTrackColor = ColorPalette.White,
             activeTickColor = ColorPalette.BackgroundMainDarker
         )
+    } else {
+        SliderDefaults.colors(
+            thumbColor = ColorPalette.LightGray,
+            activeTrackColor = ColorPalette.LightGray,
+            inactiveTrackColor = ColorPalette.LightGray,
+            activeTickColor = ColorPalette.LightGray
+        )
+    }
+
+    Slider(
+        value = rangeValues.value,
+        onValueChange = { rangeValues.value = it },
+        valueRange = 0f..1000f,
+        steps = 19,  // Steps between 0 and 1000, stepping by 50
+        enabled = isEnabled,
+        colors = sliderColors
     )
 }
+
 
 
 @Composable
@@ -406,9 +425,10 @@ fun ApplyFiltersButton(
             Text(
                 "Apply Filters",
                 style = TextStyle(
-                    fontSize = 18.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ColorPalette.Secondary
+                    color = ColorPalette.Secondary,
+                    fontFamily = FontFamily.SansSerif
                 )
             )
         }
@@ -429,9 +449,9 @@ fun ResetFiltersButton(
             modifier = Modifier
                 .width(240.dp)
                 .height(37.dp)
-                .background(ColorPalette.Yellow, RoundedCornerShape(10.dp)),
+                .background(ColorPalette.BackgroundMainEvenDarker, RoundedCornerShape(10.dp)),
             colors = ButtonDefaults.buttonColors(
-                containerColor = ColorPalette.Yellow,
+                containerColor = ColorPalette.BackgroundMainEvenDarker,
                 contentColor = ColorPalette.Black,
                 disabledContainerColor = ColorPalette.Secondary,
                 disabledContentColor = ColorPalette.White
@@ -442,7 +462,8 @@ fun ResetFiltersButton(
                 style = TextStyle(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ColorPalette.Secondary
+                    color = ColorPalette.LightGray,
+                    fontFamily = FontFamily.SansSerif
                 )
             )
         }

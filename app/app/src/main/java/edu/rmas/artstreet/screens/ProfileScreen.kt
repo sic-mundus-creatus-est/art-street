@@ -21,6 +21,7 @@ import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.MainUserInfo
 import edu.rmas.artstreet.screens.components.ProfileArtworkGrid
 import edu.rmas.artstreet.screens.components.TheDivider
+import edu.rmas.artstreet.screens.components.TopAppBar
 import edu.rmas.artstreet.view_models.ArtworkVM
 
 @Composable
@@ -56,12 +57,8 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .background(ColorPalette.BackgroundMainLighter)
         ) {
-            Box (
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(ColorPalette.BackgroundMainDarker)
-                    .padding(top = 14.dp, bottom = 9.dp)
-            )
+            TopAppBar( showFiltersIcon = false )
+            TheDivider(thickness = 1.dp, color = ColorPalette.LightGray)
 
             Box (
                 modifier = Modifier

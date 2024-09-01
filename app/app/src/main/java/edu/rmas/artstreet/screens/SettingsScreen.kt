@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import edu.rmas.artstreet.data.services.LocationService
 import edu.rmas.artstreet.screens.components.ColorPalette
+import edu.rmas.artstreet.screens.components.TopAppBar
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -58,6 +59,7 @@ fun SettingsScreen(
     Box(modifier = Modifier
         .fillMaxSize()
         .background(ColorPalette.BackgroundMainDarker)) {
+        TopAppBar( showFiltersIcon = false )
         Column(
             modifier = Modifier
                 .fillMaxWidth()

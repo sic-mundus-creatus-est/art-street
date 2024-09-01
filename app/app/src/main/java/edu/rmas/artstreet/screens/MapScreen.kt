@@ -4,13 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -29,16 +25,12 @@ import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArtTrack
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Leaderboard
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -61,7 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.CameraPosition
@@ -81,12 +72,15 @@ import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.data.services.LocationService
+import edu.rmas.artstreet.screens.components.AddNewArtworkLocationButton
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.ArtworkMarker
-import edu.rmas.artstreet.screens.components.FilterStatusBadge
+import edu.rmas.artstreet.screens.components.FilterBottomSheetButton
+import edu.rmas.artstreet.screens.components.FilterStatusTextBadge
 import edu.rmas.artstreet.screens.components.SearchBar
 import edu.rmas.artstreet.screens.components.SignUpInButton
 import edu.rmas.artstreet.screens.components.MainUserInfo
+import edu.rmas.artstreet.screens.components.SideBarMenuDrawer
 import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.screens.components.myPositionIndicator
 import edu.rmas.artstreet.view_models.ArtworkVM
@@ -110,120 +104,60 @@ fun MapScreen(
     artworkVM: ArtworkVM,
     artworkMarkers: MutableList<Artwork>
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     authVM.getUserData()
     val userDataResource = authVM.currentUserFlow.collectAsState()
-    val user = remember {
-        mutableStateOf<User?>(null)
-    }
+    val user = remember { mutableStateOf<User?>(null) }
+    val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
+
     val markers = remember { mutableStateListOf<LatLng>() }
-    val properties = remember {
-        mutableStateOf(MapProperties(mapType = MapType.TERRAIN))
-    }
-    val uiSettings = remember { mutableStateOf(MapUiSettings(zoomControlsEnabled = false)) }
+    val mapProperties = remember { mutableStateOf(MapProperties(mapType = MapType.TERRAIN)) }
+    val mapUISettings = remember { mutableStateOf(MapUiSettings(zoomControlsEnabled = false)) }
 
-    val myLocation = remember {
-        mutableStateOf<LatLng?>(null)
-    }
+    val btnIsEnabled = remember { mutableStateOf(true) }
+    val btnIsLoading = remember { mutableStateOf(false) }
 
-    val buttonIsEnabled = remember { mutableStateOf(true) }
-    val isLoading = remember { mutableStateOf(false) }
-
-    val artworksData = artworkVM.artworks.collectAsState()
-    val allArtworks = remember {
-        mutableListOf<Artwork>()
-    }
-    artworksData.value.let {
-        when (it) {
-            is Resource.Success -> {
-                allArtworks.clear()
-                allArtworks.addAll(it.result)
-            }
-
-            is Resource.Loading -> { }
-            is Resource.Failure -> { }
-            null -> { }
-        }
-    }
-
-    val receiver = remember {
-        object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == LocationService.ACTION_LOCATION_UPDATE) {
-                    val latitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
-                    val longitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
-
-                    myLocation.value = LatLng(latitude, longitude)
-                }
-            }
-        }
-    }
-
-    val context = LocalContext.current
-
+    val artworksDataResource = artworkVM.artworks.collectAsState()
+    val artworks = remember { mutableListOf<Artwork>() }
     val filteredArtworks by artworkVM.filteredArtworks.collectAsState()
     val filtersOn by artworkVM.filtersOn.collectAsState()
 
-    DisposableEffect(context) {
-        LocalBroadcastManager.getInstance(context)
-            .registerReceiver(receiver, IntentFilter(LocationService.ACTION_LOCATION_UPDATE))
-        onDispose {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
-        }
-    }
-
-    LaunchedEffect(myLocation.value) {
-        myLocation.value?.let {
-            if (!isCameraSet.value) {
-                cameraPosition.position = CameraPosition.fromLatLngZoom(it, 17f)
-                isCameraSet.value = true
-            }
-            markers.clear()
-            markers.add(it)
-        }
-    }
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope()
+    val sidebarMenuDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val filterBottomSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
 
     val gesturesEnabled = remember { mutableStateOf(false) }
 
-    LaunchedEffect(drawerState.isOpen) {
-        gesturesEnabled.value = drawerState.isOpen
-    }
-
-    val inputValue = remember {
-        mutableStateOf("")
-    }
-
-    val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+    val searchInputValue = remember { mutableStateOf("") }
 
 
-    ModalBottomSheetLayout(
-        sheetState = sheetState,
+
+    ModalBottomSheetLayout (
+        modifier = Modifier.fillMaxSize(),
+        sheetState = filterBottomSheetState,
         sheetContent = {
             FilterScreen(
                 authVM = authVM,
                 artworkVM = artworkVM,
-                artworks = allArtworks,
-                sheetState = sheetState,
-                userLocation = myLocation.value
+                artworks = artworks,
+                sheetState = filterBottomSheetState,
+                userLocation = currentUserLocation.value
             )
         },
-        modifier = Modifier.fillMaxSize(),
     ) {
-        Column(
+        Column (
             modifier = Modifier
                 .fillMaxSize()
                 .height(100.dp),
         )
         {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
+            ModalNavigationDrawer (
+                drawerState = sidebarMenuDrawerState,
                 gesturesEnabled = gesturesEnabled.value,
                 drawerContent = {
-                    ModalDrawerSheet(drawerContainerColor=ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape){
+                    ModalDrawerSheet(drawerContainerColor=ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape)
+                    {
                         Box(
                             modifier = Modifier
                                 .background(ColorPalette.BackgroundMainEvenDarker)
@@ -231,28 +165,28 @@ fun MapScreen(
                                 .height(140.dp)
                         ) {
                             if (user.value != null)
-                                MainUserInfo(
+                                MainUserInfo (
                                     imageUrl = user.value!!.profilePicture,
                                     name = user.value!!.fullName,
                                 )
                         }
-                        NavigationDrawerItem(
+                        NavigationDrawerItem (
                             label = { Text(text = "Profile", color = ColorPalette.White) },
                             selected = false,
                             icon = {
-                                Icon(
+                                Icon (
                                     imageVector = Icons.Filled.AccountCircle,
                                     contentDescription = "profile",
                                     tint = ColorPalette.Yellow
                                 )
                             },
-                            colors = NavigationDrawerItemDefaults.colors(
+                            colors = NavigationDrawerItemDefaults.colors (
                                 selectedContainerColor = ColorPalette.BackgroundMainDarker,
                                 unselectedContainerColor = ColorPalette.BackgroundMainDarker
                             ),
                             onClick = {
                                 coroutineScope.launch {
-                                    drawerState.close()
+                                    sidebarMenuDrawerState.close()
                                     val userJson = Gson().toJson(user.value)
                                     val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
                                     navController.navigate("${Routes.profileScreen}/$encodedUserJson")
@@ -277,7 +211,7 @@ fun MapScreen(
                             ),
                             onClick = {
                                 coroutineScope.launch {
-                                    drawerState.close()
+                                    sidebarMenuDrawerState.close()
                                     val artworksJson = Gson().toJson(
                                         if (filtersOn)
                                             filteredArtworks
@@ -324,7 +258,7 @@ fun MapScreen(
                             icon = { Icon(imageVector = Icons.Filled.Settings, contentDescription = "settings", tint = ColorPalette.Yellow) },
                             onClick = {
                                 coroutineScope.launch {
-                                    drawerState.close()
+                                    sidebarMenuDrawerState.close()
                                     navController.navigate(Routes.settingsScreen)
                                 }
                             },
@@ -338,8 +272,8 @@ fun MapScreen(
                                 SignUpInButton(
                                     text = "SIGN OUT",
                                     icon = Icons.AutoMirrored.Filled.Logout,
-                                    isEnabled = buttonIsEnabled,
-                                    isLoading = isLoading,
+                                    isEnabled = btnIsEnabled,
+                                    isLoading = btnIsLoading,
                                     onClick = {
                                         authVM.signOut()
                                         navController.navigate(Routes.signInScreen)
@@ -354,8 +288,8 @@ fun MapScreen(
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPosition,
-                        properties = properties.value,
-                        uiSettings = uiSettings.value,
+                        properties = mapProperties.value,
+                        uiSettings = mapUISettings.value,
                     ) {
                         markers.forEach { marker ->
                             val icon = myPositionIndicator(
@@ -401,88 +335,47 @@ fun MapScreen(
                     }
                     Column {
                         Spacer(modifier = Modifier.height(15.dp))
+                    // -----------------------------------------------------------------------------
+                    // -[[ TOP BAR NAVIGATION ]]-
                         Row {
                             Spacer(modifier = Modifier.width(15.dp))
-                            Box(
+
+                            Box (
                                 modifier = Modifier.background(
                                     ColorPalette.BackgroundMainLighter,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
+                                    shape = RoundedCornerShape(10.dp))
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            drawerState.open()
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .width(50.dp)
-                                        .height(50.dp)
-                                        .border(
-                                            1.dp,
-                                            ColorPalette.BackgroundMainDarker,
-                                            shape = RoundedCornerShape(10.dp),
-                                        )
-                                        .clip(
-                                            RoundedCornerShape(10.dp)
-                                        ),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Menu,
-                                        contentDescription = "Menu",
-                                        tint = ColorPalette.Yellow
-                                    )
-                                }
+                                SideBarMenuDrawer(onClick = { coroutineScope.launch { sidebarMenuDrawerState.open() } })
                             }
+
                             Spacer(modifier = Modifier.width(5.dp))
-                            SearchBar(
-                                inputValue = inputValue,
-                                artworkData = artworkMarkers,
+                            SearchBar (
+                                inputValue = searchInputValue,
+                                artworkData = if(!filtersOn) artworkMarkers else filteredArtworks!!.toMutableList(),
                                 cameraPositionState = cameraPosition,
                                 navController = navController
                             )
                             Spacer(modifier = Modifier.width(5.dp))
 
-                            Box(
+                            Box (
                                 modifier = Modifier.background(
                                     ColorPalette.BackgroundMainLighter,
                                     shape = RoundedCornerShape(10.dp)
                                 )
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .border(
-                                            1.dp,
-                                            ColorPalette.BackgroundMainDarker,
-                                            shape = RoundedCornerShape(10.dp)
-                                        )
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable {
-                                            coroutineScope.launch {
-                                                sheetState.show()
-                                            }
-                                        }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.FilterList,
-                                        contentDescription = "Filter",
-                                        tint = ColorPalette.Yellow,
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .size(30.dp)
-                                    )
-                                    FilterStatusBadge(isOn = filtersOn)
-                                }
+                                FilterBottomSheetButton(onClick = { coroutineScope.launch { filterBottomSheetState.show() } }, filtersOn)
+                                FilterStatusTextBadge(isOn = filtersOn, modifier = Modifier.align(Alignment.BottomEnd))
                             }
-
                         }
+                    // -----------------------------------------------------------------------------
+
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.Bottom
                         ) {
-
+                    // -----------------------------------------------------------------------------
+                    // -[[ BOTTOM BAR NAVIGATION ]]- (only AddNewArtwork button for now)
                             Row {
                                 Box(
                                     modifier = Modifier.background(
@@ -490,37 +383,26 @@ fun MapScreen(
                                         shape = RoundedCornerShape(7.dp)
                                     )
                                 ) {
-                                    IconButton(
-                                        onClick = {
-                                            if (myLocation.value != null) {
-                                                val location = myLocation.value!!
-                                                navController.navigate(route = "${Routes.addArtworkScreen}/${location.latitude}/${location.longitude}")
-                                            } else {
-                                                Toast.makeText(context, "Please enable GPS!", Toast.LENGTH_SHORT).show()
-                                            }
-                                          },
-                                        modifier = Modifier
-                                            .width(50.dp)
-                                            .height(50.dp)
-                                            .clip(
-                                                RoundedCornerShape(10.dp)
-                                            ),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add",
-                                            tint = ColorPalette.Yellow
-                                        )
-                                    }
+                                    AddNewArtworkLocationButton (
+                                        onClick = { if (currentUserLocation.value != null) {
+                                            val location = currentUserLocation.value!!
+                                            navController.navigate(route = "${Routes.addArtworkScreen}/${location.latitude}/${location.longitude}")
+                                        } else {
+                                            Toast.makeText(context, "Turn on location for this option!", Toast.LENGTH_SHORT).show()
+                                        } },
+                                        currentUserLocation = currentUserLocation
+                                    )
                                 }
                                 Spacer(modifier = Modifier.width(15.dp))
                             }
                             Spacer(modifier = Modifier.height(15.dp))
                         }
+                    // -----------------------------------------------------------------------------
                     }
                 }
             }
         }
+
     }
 
     userDataResource.value.let {
@@ -534,6 +416,55 @@ fun MapScreen(
 
             is Resource.Failure -> {}
             Resource.Loading -> {}
+        }
+    }
+
+    artworksDataResource.value.let {
+        when (it) {
+            is Resource.Success -> {
+                artworks.clear()
+                artworks.addAll(it.result)
+            }
+
+            is Resource.Loading -> { }
+            is Resource.Failure -> { }
+            null -> { }
+        }
+    }
+
+    LaunchedEffect(sidebarMenuDrawerState.isOpen) { gesturesEnabled.value = sidebarMenuDrawerState.isOpen }
+
+    val receiver = remember {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == LocationService.ACTION_LOCATION_UPDATE) {
+                    val latitude =
+                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
+                    val longitude =
+                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
+
+                    currentUserLocation.value = LatLng(latitude, longitude)
+                }
+            }
+        }
+    }
+
+    DisposableEffect(context) {
+        LocalBroadcastManager.getInstance(context)
+            .registerReceiver(receiver, IntentFilter(LocationService.ACTION_LOCATION_UPDATE))
+        onDispose {
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+        }
+    }
+
+    LaunchedEffect(currentUserLocation.value) {
+        currentUserLocation.value?.let {
+            if (!isCameraSet.value) {
+                cameraPosition.position = CameraPosition.fromLatLngZoom(it, 17f)
+                isCameraSet.value = true
+            }
+            markers.clear()
+            markers.add(it)
         }
     }
 

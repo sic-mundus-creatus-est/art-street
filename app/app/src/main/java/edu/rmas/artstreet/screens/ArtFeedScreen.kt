@@ -11,10 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -26,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import edu.rmas.artstreet.R
 import edu.rmas.artstreet.app_navigation.Routes
@@ -36,17 +44,28 @@ import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.CopyrightText
 import edu.rmas.artstreet.screens.components.TopAppBar
 import edu.rmas.artstreet.view_models.ArtworkVM
+import edu.rmas.artstreet.view_models.AuthVM
+import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ArtFeedScreen(
-    artworks: List<Artwork>?,
+    artworks: List<Artwork>,
     navController: NavController,
-    artworkVM: ArtworkVM
+    artworkVM: ArtworkVM,
+//    authVM: AuthVM,
+//    currentUserLocation: MutableState<LatLng>
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
     val artworksList = remember { mutableListOf<Artwork>() }
+    val filteredArtworks by artworkVM.filteredArtworks.collectAsState()
+
+    val filterBottomSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+
 
     if (artworks.isNullOrEmpty()) {
         val artworksResource = artworkVM.artworks.collectAsState()
@@ -69,7 +88,7 @@ fun ArtFeedScreen(
         .background(ColorPalette.BackgroundMainDarker)
     )
     {
-        TopAppBar(showSearchIcon = true)
+        TopAppBar( showFiltersIcon = true )
 
         if (artworks.isNullOrEmpty())
         {

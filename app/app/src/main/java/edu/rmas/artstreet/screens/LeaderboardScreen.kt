@@ -55,7 +55,7 @@ fun LeaderboardScreen( authVM: AuthVM, artworkVM: ArtworkVM, navController: NavC
         .fillMaxSize()
         .background(ColorPalette.BackgroundMainDarker)
     ) {
-        TopAppBar(showSearchIcon = false)
+        TopAppBar( showFiltersIcon = false )
         Column( modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 57.dp),

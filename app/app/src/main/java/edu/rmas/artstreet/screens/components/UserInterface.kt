@@ -40,7 +40,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,12 +47,15 @@ import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -1422,7 +1424,7 @@ fun ArtworkPhotoGrid(images: List<String> )
 
 
 @Composable
-fun TopAppBar(showSearchIcon: Boolean) {
+fun TopAppBar(showFiltersIcon: Boolean, filtersOn: Boolean = false, onClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1459,17 +1461,18 @@ fun TopAppBar(showSearchIcon: Boolean) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            if (showSearchIcon) {
-                IconButton(onClick = {
-                    // TODO: Handle search click here
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = "Search",
-                        modifier = Modifier.size(30.dp),
-                        tint = ColorPalette.White
-                    )
-                }
+            if (showFiltersIcon) {
+//                IconButton(onClick = {
+//                    // TODO: Handle search click here
+//                }) {
+//                    Icon(
+//                        imageVector = Icons.Filled.Search,
+//                        contentDescription = "Search",
+//                        modifier = Modifier.size(30.dp),
+//                        tint = ColorPalette.White
+//                    )
+//                }
+                FilterBottomSheetButton(onClick = onClick, filtersOn = filtersOn )
             }
         }
     }
@@ -1757,14 +1760,95 @@ fun LeaderboardPicker(
 
 
 @Composable
-fun FilterStatusBadge(isOn: Boolean) {
-    val badgeColor = if (isOn) Color.Green else ColorPalette.LightGray
-    Box(
+fun SideBarMenuDrawer (onClick: () -> Unit )
+{
+    IconButton(
+        onClick = onClick,
         modifier = Modifier
-            .size(12.dp)
-            .background(badgeColor, shape = CircleShape)
-            .clip(CircleShape)
-    )
+            .width(50.dp)
+            .height(50.dp)
+            .border(
+                1.dp,
+                ColorPalette.BackgroundMainDarker,
+                shape = RoundedCornerShape(10.dp),
+            )
+            .clip(
+                RoundedCornerShape(10.dp)
+            ),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Menu,
+            contentDescription = "Menu",
+            tint = ColorPalette.Yellow
+        )
+    }
+}
+
+@Composable
+fun FilterBottomSheetButton( onClick: () -> Unit, filtersOn: Boolean )
+{
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .width(50.dp)
+            .height(50.dp)
+    ) {
+        if(filtersOn) {
+            Icon(
+                imageVector = Icons.Default.FilterAlt,
+                contentDescription = "filters_on",
+                tint = ColorPalette.Yellow
+            )
+        }
+        else {
+            Icon(
+                imageVector = Icons.Default.FilterAltOff,
+                contentDescription = "filters_off",
+                tint = ColorPalette.LightGray
+            )
+        }
+    }
+}
+
+@Composable
+fun FilterStatusTextBadge(isOn: Boolean, modifier: Modifier = Modifier)
+{
+    val badgeText = if (isOn) "ON" else "OFF"
+    val textColor = if (isOn) ColorPalette.Yellow else ColorPalette.LightGray
+
+    Box ( contentAlignment = Alignment.Center,
+          modifier = modifier
+              .padding(horizontal = 9.dp, vertical = 2.dp)
+    ) {
+        Text (
+            text = badgeText,
+            color = textColor,
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            fontStyle = FontStyle.Italic,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+fun AddNewArtworkLocationButton( onClick: () -> Unit, currentUserLocation: MutableState<LatLng?> )
+{
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .width(50.dp)
+            .height(50.dp)
+            .clip(
+                RoundedCornerShape(10.dp)
+            ),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "Add",
+            tint = if (currentUserLocation.value != null) ColorPalette.Yellow else ColorPalette.LightGray
+        )
+    }
 }
 
 
