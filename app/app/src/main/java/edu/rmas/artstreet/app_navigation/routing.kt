@@ -164,7 +164,8 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
             ArtworkScreen (
                 artwork = artwork,
                 artworkVM = artworkVM,
-                authVM = authVM
+                authVM = authVM,
+                navController = navController
             )
         }
     //-----------------------------------------------------------------------------
@@ -176,7 +177,7 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
                 backStackEntry ->
             val artworksJson = backStackEntry.arguments?.getString("artworks")
             val artworks = Gson().fromJson(artworksJson, Array<Artwork>::class.java).toList()
-            ArtFeedScreen(artworks = artworks, navController = navController, artworkVM = artworkVM)
+            ArtFeedScreen(artworks = artworks, navController = navController, artworkVM = artworkVM, authVM = authVM)
         }
 
     //-----------------------------------------------------------------------------

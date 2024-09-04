@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.NavController
 import com.google.android.gms.maps.model.LatLng
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.Interaction
@@ -52,6 +53,7 @@ import edu.rmas.artstreet.screens.components.ArtworkPhotoGrid
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.screens.components.PrimaryArtworkPhoto
+import edu.rmas.artstreet.screens.components.UsernameWithDate
 import edu.rmas.artstreet.screens.components.VisitedInteractionButton
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
@@ -62,9 +64,25 @@ import edu.rmas.artstreet.view_models.AuthVM
 fun ArtworkScreen(
     artwork: Artwork,
     artworkVM: ArtworkVM,
-    authVM: AuthVM
+    authVM: AuthVM,
+    navController: NavController
 ) {
     val context = LocalContext.current
+
+    val artworksDataResource = artworkVM.artworks.collectAsState()
+    val artworks = remember { mutableListOf<Artwork>() }
+
+    val userByIdResource by authVM.userById.collectAsState()
+    LaunchedEffect(artwork.capturerId) {
+        authVM.getUserById(artwork.capturerId)
+    }
+    val user = when (val userResource = userByIdResource) {
+        is Resource.Success -> userResource.result
+        is Resource.Failure -> { null }
+        is Resource.Loading -> { null }
+        null -> null
+    }
+
     val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
     val isLoading = remember { mutableStateOf(false) }
 
@@ -131,7 +149,7 @@ fun ArtworkScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(ColorPalette.BackgroundMainEvenDarker)
-                    .padding(start = 10.dp, end = 10.dp, top = 0.dp, bottom = 10.dp)
+                    .padding(start = 10.dp, end = 10.dp, top = 0.dp, bottom = 0.dp)
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(5.dp))
@@ -177,12 +195,24 @@ fun ArtworkScreen(
                             )
                         }
                     }
+
                     LocationTag(
                         location = LatLng(artwork.location.latitude, artwork.location.longitude),
-                        context = context
+                        context = context,
+                        artworks = artworks,
+                        navController = navController
                     )
+
                     Spacer(modifier = Modifier.height(2.dp))
                     TheDivider()
+                    Spacer(modifier = Modifier.height(7.dp))
+
+                    UsernameWithDate(
+                        username = "user123",
+                        imageUrl = artwork.galleryImages[0],
+                        user = user,
+                        navController = navController
+                    )
                 }
             }
 
@@ -229,6 +259,19 @@ fun ArtworkScreen(
         }
         null -> {
             isLoading.value = false
+        }
+    }
+
+    artworksDataResource.value.let {
+        when (it) {
+            is Resource.Success -> {
+                artworks.clear()
+                artworks.addAll(it.result)
+            }
+
+            is Resource.Loading -> { }
+            is Resource.Failure -> { }
+            null -> { }
         }
     }
 }

@@ -5,10 +5,13 @@ import android.graphics.Bitmap
 import android.location.Address
 import android.location.Geocoder
 import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -129,8 +132,12 @@ import edu.rmas.artstreet.R
 import edu.rmas.artstreet.app_navigation.Routes
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.User
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -621,8 +628,8 @@ fun ArtworkGalleryUploadField(
                         .padding(4.dp)
                         .size(100.dp)
                         .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            width = if (index == 0) 2.dp else 1.dp,
+                            color = if (index == 0) ColorPalette.Yellow else MaterialTheme.colorScheme.onSurfaceVariant,
                             shape = RoundedCornerShape(10.dp)
                         )
                         .background(
@@ -1128,16 +1135,16 @@ fun ProfileArtworkGrid(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ColorPalette.BackgroundMainDarker)
+                .background(ColorPalette.BackgroundMainEvenDarker)
                 .padding(top = 14.dp, bottom = 9.dp)
         ) {
             Text(
                 text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(color = ColorPalette.Yellow, fontWeight = FontWeight.Bold, fontSize = 24.sp)) {
+                    withStyle(style = SpanStyle(color = ColorPalette.Yellow, fontWeight = FontWeight.Bold, fontSize = 24.sp, fontFamily = FontFamily.Monospace)) {
                         append("${artworks.size} ")
                     }
-                    withStyle(style = SpanStyle(color = ColorPalette.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
-                        append("Shared Locations")
+                    withStyle(style = SpanStyle(color = ColorPalette.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)) {
+                        if(artworks.size == 1) append("Shared Location") else append("Shared Locations")
                     }
                 },
                 fontFamily = FontFamily.SansSerif,
@@ -1209,7 +1216,9 @@ fun PrimaryArtworkPhoto(
 @Composable
 fun LocationTag(
     location: LatLng,
-    context: Context
+    context: Context,
+    navController: NavController,
+    artworks: List<Artwork>
 ) {
     var addressText by remember { mutableStateOf("Fetching location...") }
 
@@ -1228,13 +1237,28 @@ fun LocationTag(
         }
     }
 
+    val isCameraSet = true
+    val latitude = location.latitude
+    val longitude = location.longitude
+
+    // Encode artworks to pass as a parameter
+    val artworksJson = Gson().toJson(artworks)
+    val encodedArtworks = URLEncoder.encode(artworksJson, StandardCharsets.UTF_8.toString())
+
+    // OnClick action
+    val onClick = {
+        navController.navigate(Routes.mapScreen + "/$isCameraSet/$latitude/$longitude/$encodedArtworks")
+    }
+
     Row(
-        modifier = Modifier.padding(start = 5.dp),
+        modifier = Modifier
+            .padding(start = 5.dp)
+            .clickable { onClick() }, // Make the whole row clickable
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Filled.LocationOn,
-            contentDescription = "",
+            contentDescription = "Location",
             tint = ColorPalette.Yellow
         )
 
@@ -1251,20 +1275,29 @@ fun LocationTag(
     }
 }
 
+
 @Composable
 fun ArtworkDescription(description: String) {
     var isDescriptionExpanded by remember { mutableStateOf(false) }
 
+    val isTruncated = description.length > 100
+
+    val indent = "    "  // Four spaces for indentation
+
     val annotatedText = buildAnnotatedString {
-        if (isDescriptionExpanded) {
-            // Full description when expanded
+        if (description.isEmpty()) {
+            return@buildAnnotatedString
+        }
+
+        if (isDescriptionExpanded || !isTruncated) {
+            // Show full description when expanded or if not truncated
             withStyle(style = SpanStyle(color = ColorPalette.White, fontSize = 14.sp)) {
-                append(description.replace('+', ' '))
+                append(indent + description.replace('+', ' '))
             }
         } else {
-            // Truncated description with "Read more"
+            // Show truncated description with "Read more" if the text is truncated
             withStyle(style = SpanStyle(color = ColorPalette.White, fontSize = 14.sp)) {
-                append(description.take(100).replace('+', ' ') + "...")
+                append(indent + description.take(100).replace('+', ' ') + "...")
             }
             withStyle(style = SpanStyle(color = ColorPalette.Blue, fontSize = 14.sp)) {
                 pushStringAnnotation(tag = "TOGGLE", annotation = "TOGGLE")
@@ -1278,19 +1311,72 @@ fun ArtworkDescription(description: String) {
         ClickableText(
             text = annotatedText,
             onClick = { offset ->
-                annotatedText.getStringAnnotations(tag = "TOGGLE", start = offset, end = offset)
-                    .firstOrNull()?.let {
-                        isDescriptionExpanded = !isDescriptionExpanded
-                    } ?: run {
-                    if (isDescriptionExpanded) {
-                        isDescriptionExpanded = false
-                    }
+                val annotation = annotatedText.getStringAnnotations(tag = "TOGGLE", start = offset, end = offset)
+                    .firstOrNull()
+
+                if (annotation != null) {
+                    isDescriptionExpanded = !isDescriptionExpanded
+                } else if (isDescriptionExpanded) {
+                    // If the text is expanded, clicking anywhere should collapse it
+                    isDescriptionExpanded = false
                 }
             },
             modifier = Modifier.padding(top = 4.dp)
         )
     }
 }
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun UsernameWithDate(username: String, imageUrl: String, user: User?, navController: NavController)
+{
+    val decodedUrl = URLDecoder.decode(imageUrl, StandardCharsets.UTF_8.toString())
+
+    val filename = decodedUrl.substringAfterLast("/").substringBefore("?")
+
+    val timestamp = filename.substringBefore(".").toLongOrNull()
+
+    val date = if (timestamp != null && timestamp > 0) {
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(formatter)
+    } else {
+        "Lost date"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "@$username",
+            style = TextStyle(fontSize = 16.sp, fontFamily = FontFamily.Default, color = ColorPalette.Blue),
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .padding(end = 8.dp)
+                .clickable {
+                    val userJson = Gson().toJson(user)
+                    val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
+                    navController.navigate(Routes.profileScreen + "/$encodedUserJson")
+                }
+        )
+        Text(
+            text = date,
+            color = ColorPalette.LightGray,
+            style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+    }
+}
+
+
+
+
+
+
+
 
 
 
@@ -1462,16 +1548,6 @@ fun TopAppBar(showFiltersIcon: Boolean, filtersOn: Boolean = false, onClick: () 
             Spacer(modifier = Modifier.weight(1f))
 
             if (showFiltersIcon) {
-//                IconButton(onClick = {
-//                    // TODO: Handle search click here
-//                }) {
-//                    Icon(
-//                        imageVector = Icons.Filled.Search,
-//                        contentDescription = "Search",
-//                        modifier = Modifier.size(30.dp),
-//                        tint = ColorPalette.White
-//                    )
-//                }
                 FilterBottomSheetButton(onClick = onClick, filtersOn = filtersOn )
             }
         }
@@ -1495,7 +1571,7 @@ fun ArtFeedPost (
                 shape = RoundedCornerShape(10.dp)
             )
             .border(
-                width = 2.dp,
+                width = 1.dp,
                 color = ColorPalette.BackgroundMainEvenDarker,
                 shape = RoundedCornerShape(10.dp)
             )
@@ -1523,17 +1599,7 @@ fun ArtFeedPost (
                 .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = artworkOnMap,
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ShareLocation,
-                    contentDescription = "",
-                    tint = ColorPalette.Yellow
-                )
-            }
-
+            ArtworkLocationOnMapButton (onClick = artworkOnMap)
             Text(
                 text = if (artwork.title.length > 40) artwork.title.substring(0, 40).replace('+', ' ') + "..." else artwork.title.replace('+', ' '),
                 style = TextStyle(
@@ -1550,6 +1616,21 @@ fun ArtFeedPost (
 
         // Description text with expand/collapse functionality
         ArtworkDescription(description = artwork.description)
+    }
+}
+
+@Composable
+fun ArtworkLocationOnMapButton(onClick: () -> Unit)
+{
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.padding(end = 8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.ShareLocation,
+            contentDescription = "",
+            tint = ColorPalette.Yellow
+        )
     }
 }
 

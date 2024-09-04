@@ -120,6 +120,26 @@ class AuthRepo : IAuthRepo
         }
     }
 
+    override suspend fun getUserById(userId: String): Resource<User> {
+        return try {
+            val userDocRef = firestoreInstance.collection("users").document(userId)
+            val userSnapshot = userDocRef.get().await()
+
+            if (!userSnapshot.exists()) {
+                return Resource.Failure(Exception("[ERROR] User document does not exist! (User ID: $userId)"))
+            }
+
+            val user = userSnapshot.toObject(User::class.java)
+                ?: return Resource.Failure(Exception("[ERROR] Failed to map snapshot document to User! (User ID: $userId)"))
+
+            Resource.Success(user)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Failure(e)
+        }
+    }
+
+
     override fun signOut()
     {
         firebaseAuth.signOut()

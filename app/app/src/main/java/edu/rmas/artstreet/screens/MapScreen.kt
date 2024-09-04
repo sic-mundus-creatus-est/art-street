@@ -213,9 +213,6 @@ fun MapScreen(
                                 coroutineScope.launch {
                                     sidebarMenuDrawerState.close()
                                     val artworksJson = Gson().toJson(
-                                        if (filtersOn)
-                                            filteredArtworks
-                                        else
                                             artworkMarkers
                                     )
                                     val encodedArtworksJson = URLEncoder.encode(artworksJson, StandardCharsets.UTF_8.toString())

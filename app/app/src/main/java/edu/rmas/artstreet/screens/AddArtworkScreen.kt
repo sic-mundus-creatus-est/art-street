@@ -59,7 +59,6 @@ fun AddArtworkScreen(
     val context = LocalContext.current
     var addressText by remember { mutableStateOf("Fetching location...") }
 
-    // Perform reverse geocoding when location changes
     LaunchedEffect(location?.value) {
         location?.value?.let { latLng ->
             val geocoder = Geocoder(context, Locale.getDefault())
@@ -70,7 +69,7 @@ fun AddArtworkScreen(
                 val streetName = address.thoroughfare ?: ""
                 val locality = address.locality ?: ""
                 val country = address.countryName ?: ""
-                "$streetName $streetNumber, $locality, $country" // Format the address
+                "$streetName $streetNumber, $locality, $country"
             } else {
                 "Unknown location"
             }
@@ -192,7 +191,7 @@ fun AddArtworkScreen(
                             galleryImages = selectedPhotos.value,
                         )
                     },
-                    text = "Post",
+                    text = "ADD",
                     isEnabled = buttonIsEnabled,
                     isLoading = buttonIsLoading,
                     modifier = Modifier
@@ -219,9 +218,7 @@ fun AddArtworkScreen(
                 val context = LocalContext.current
                 Toast.makeText(context, "Error while adding a new art location", Toast.LENGTH_LONG).show()
             }
-            is Resource.Loading -> {
-                // Handle loading state if necessary
-            }
+            is Resource.Loading -> { }
             is Resource.Success -> {
                 buttonIsLoading.value = false
                 if(isAdded.value)

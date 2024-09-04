@@ -63,11 +63,13 @@ fun ProfileScreen(
             Box (
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorPalette.BackgroundMainEvenDarker),
+                    .background(ColorPalette.BackgroundMainDarker),
                 contentAlignment = Alignment.CenterStart
             ) {
                 MainUserInfo( imageUrl = user.profilePicture, name = user.fullName.replace("+", " "), phoneNumber = user.phoneNumber )
             }
+
+            TheDivider(thickness = 1.dp, color = ColorPalette.LightGray)
 
             ProfileArtworkGrid(artworks = artworks, navController = navController)
         }

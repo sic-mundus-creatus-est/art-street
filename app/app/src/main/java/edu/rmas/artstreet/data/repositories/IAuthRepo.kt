@@ -14,4 +14,5 @@ interface IAuthRepo
 
     suspend fun getUser(): Resource<User>
     suspend fun getAllUsers(): Resource<List<User>>
+    suspend fun getUserById(userId: String): Resource<User>
 }

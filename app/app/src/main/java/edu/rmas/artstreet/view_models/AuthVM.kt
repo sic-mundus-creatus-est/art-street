@@ -24,8 +24,11 @@ class AuthVM() : ViewModel()
     private val _currentUserFlow = MutableStateFlow<Resource<User>?>(null)
     val currentUserFlow: StateFlow<Resource<User>?> = _currentUserFlow
 
-    private val _allUsers = MutableStateFlow<Resource<List<User>>?>(null)
-    val allUsers: StateFlow<Resource<List<User>>?> = _allUsers
+    private val _allUsersFlow = MutableStateFlow<Resource<List<User>>?>(null)
+    val allUsers: StateFlow<Resource<List<User>>?> = _allUsersFlow
+
+    private val _userByIdFlow = MutableStateFlow<Resource<User>?>(null)
+    val userById: StateFlow<Resource<User>?> = _userByIdFlow
 
     val currentUser: FirebaseUser?
         get() = repo.user
@@ -37,7 +40,7 @@ class AuthVM() : ViewModel()
 
     fun getAllUsersData() = viewModelScope.launch {
         val result = repo.getAllUsers()
-        _allUsers.value = result
+        _allUsersFlow.value = result
     }
 
     init {
@@ -64,6 +67,12 @@ class AuthVM() : ViewModel()
         _signInFlow.value = null
         _signUpFlow.value = null
         _currentUserFlow.value = null
+    }
+
+    fun getUserById(userId: String) = viewModelScope.launch {
+        _userByIdFlow.value = Resource.Loading
+        val result = repo.getUserById(userId)
+        _userByIdFlow.value = result
     }
 }
 
