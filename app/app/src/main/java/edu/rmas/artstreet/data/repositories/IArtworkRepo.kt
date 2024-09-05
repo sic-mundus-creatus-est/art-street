@@ -11,7 +11,6 @@ interface IArtworkRepo {
         title: String,
         location: LatLng,
         description: String,
-        primaryImage: Uri,
         galleryImages: List<Uri>,
     ): Resource<String>
 

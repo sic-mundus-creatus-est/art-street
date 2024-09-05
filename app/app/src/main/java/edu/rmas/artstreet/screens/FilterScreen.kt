@@ -1,7 +1,10 @@
 package edu.rmas.artstreet.screens
 
+import android.app.DatePickerDialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +28,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -36,13 +40,17 @@ import edu.rmas.artstreet.view_models.AuthVM
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
 import edu.rmas.artstreet.screens.components.ColorPalette
+import edu.rmas.artstreet.screens.components.extractDateFromTimestamp
 import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.view_models.ArtworkVM
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.*
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun FilterScreen (
@@ -67,6 +75,9 @@ fun FilterScreen (
     val allUsersData = remember { mutableStateOf<List<User>>(emptyList()) }
 
     val isDistanceSliderEnabled = userLocation != null
+
+    val startDate = remember { mutableStateOf<LocalDate?>(null) }
+    val endDate = remember { mutableStateOf<LocalDate?>(null) }
 
 // -------------------------------------------------------------------------------------------------
 // >> USER INTERFACE
@@ -155,6 +166,47 @@ fun FilterScreen (
 
                 DistanceRangeSlider(rangeValues = selectedDistance, isDistanceSliderEnabled)
             // -------------------------------------------------------------------------------------
+            // PARAMETER: -[[ DATE RANGE ]]-
+                Text(
+                    text = "Date Range",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.Yellow,
+                        fontStyle = FontStyle.Italic
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(start = 17.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Starting from   ",
+                        style = TextStyle(fontSize = 16.sp, color = ColorPalette.LightGray, fontWeight = FontWeight.Bold)
+                    )
+
+                    DatePickerButton(
+                        date = startDate.value,
+                        onDateSelected = { startDate.value = it },
+                        label = "START DATE",
+                    )
+
+                    Text(
+                        text = "   to   ",
+                        style = TextStyle(fontSize = 16.sp, color = ColorPalette.LightGray, fontWeight = FontWeight.Bold)
+                    )
+
+                    DatePickerButton(
+                        date = endDate.value,
+                        onDateSelected = { endDate.value = it },
+                        label = "END DATE",
+                    )
+                }
+            // -------------------------------------------------------------------------------------
             // -[[ APPLY AND RESET FILTERS BUTTONS ]]-
                 Spacer(modifier = Modifier.height(30.dp))
 
@@ -165,6 +217,8 @@ fun FilterScreen (
                         rangeValues = selectedDistance,
                         selectedUser = selectedUser.value,
                         userLocation = userLocation,
+                        startDate = startDate.value,
+                        endDate = endDate.value,
                         sharedPreferences = sharedPrefsFilters,
                         coroutineScope = coroutineScope,
                         sheetState = sheetState
@@ -178,6 +232,8 @@ fun FilterScreen (
                         artworkVM = artworkVM,
                         selectedUser = selectedUser,
                         rangeValues = selectedDistance,
+                        startDate = startDate,
+                        endDate = endDate,
                         sharedPreferences = sharedPrefsFilters,
                         coroutineScope = coroutineScope,
                         sheetState = sheetState
@@ -306,10 +362,30 @@ fun UserRow(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column {
-            Text(
-                text = user.fullName,
-                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorPalette.LightGray)
-            )
+            Box {
+                Text(
+                    text = user.fullName,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.BackgroundMainEvenDarker,
+                        fontFamily = FontFamily.Default
+                    ),
+                    modifier = Modifier
+                        .offset(x = 1.dp, y = 1.dp) // Offset for stroke effect
+                )
+
+                Text(
+                    text = user.fullName,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPalette.Yellow,
+                        fontFamily = FontFamily.Default
+                    )
+                )
+            }
+
             Text(
                 text = "@${user.username}",
                 style = TextStyle(fontSize = 14.sp, color = ColorPalette.LightGray)
@@ -398,6 +474,42 @@ fun DistanceRangeSlider(
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun DatePickerButton(
+    date: LocalDate?,
+    onDateSelected: (LocalDate) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+    Text(
+        text = date?.format(formatter) ?: label,
+        style = TextStyle(
+            fontSize = 16.sp,
+            color = ColorPalette.Yellow,
+            textDecoration = TextDecoration.Underline,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Italic
+        ),
+        modifier = modifier.clickable {
+            val today = LocalDate.now()
+            DatePickerDialog( context, { _, year, month, dayOfMonth ->
+                    onDateSelected (
+                        LocalDate.of(
+                            year,
+                            month + 1,
+                            dayOfMonth
+                        )
+                    )
+                }, today.year, today.monthValue - 1, today.dayOfMonth).show()
+        }
+    )
+}
+
 
 
 @Composable
@@ -470,6 +582,7 @@ fun ResetFiltersButton(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 private fun applyFilters(
     artworkVM: ArtworkVM,
@@ -477,6 +590,8 @@ private fun applyFilters(
     rangeValues: MutableState<Float>,
     selectedUser: User?,
     userLocation: LatLng?,
+    startDate: LocalDate?,
+    endDate: LocalDate?,
     sharedPreferences: SharedPreferences,
     coroutineScope: CoroutineScope,
     sheetState: ModalBottomSheetState
@@ -504,6 +619,14 @@ private fun applyFilters(
             retainAll { it.capturerId == user.id }
             sharedPreferences.edit().putString("options", Gson().toJson(user)).apply()
         }
+
+        if (startDate != null && endDate != null) {
+            retainAll { artwork ->
+                val artworkDate = LocalDate.parse(extractDateFromTimestamp(artwork.galleryImages[0], true), DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                (artworkDate.isAfter(startDate) || artworkDate.isEqual(startDate)) &&
+                        (artworkDate.isBefore(endDate) || artworkDate.isEqual(endDate))
+            }
+        }
     }
 
     artworkVM.updateFilteredArtworks(filteredList, true)
@@ -521,12 +644,16 @@ private fun resetFilters(
     artworkVM: ArtworkVM,
     selectedUser: MutableState<User?>,
     rangeValues: MutableState<Float>,
+    startDate: MutableState<LocalDate?>,
+    endDate: MutableState<LocalDate?>,
     sharedPreferences: SharedPreferences,
     coroutineScope: CoroutineScope,
     sheetState: ModalBottomSheetState
 ) {
     selectedUser.value = null
     rangeValues.value = 1000f
+    startDate.value = null
+    endDate.value = null
     artworkVM.updateFilteredArtworks(emptyList(), false)
     sharedPreferences.edit().clear().apply()
 

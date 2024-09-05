@@ -35,13 +35,11 @@ class ArtworkRepo : IArtworkRepo {
         title: String,
         location: LatLng,
         description: String,
-        primaryImage: Uri,
         galleryImages: List<Uri>,
     ): Resource<String> {
         return try{
             val currentUser = firebaseAuth.currentUser
             if(currentUser!=null){
-                val primaryImageUrl = storageService.uploadPrimaryArtworkImage(primaryImage)
                 val galleryImagesUrls = storageService.uploadArtworkGalleryImages(galleryImages)
                 val geoLocation = GeoPoint(
                     location.latitude,
@@ -52,7 +50,6 @@ class ArtworkRepo : IArtworkRepo {
                     capturerId = currentUser.uid,
                     location = geoLocation,
                     description = description,
-                    primaryImage = primaryImageUrl,
                     galleryImages = galleryImagesUrls,
                 )
                 databaseService.saveArtworkData(artwork)

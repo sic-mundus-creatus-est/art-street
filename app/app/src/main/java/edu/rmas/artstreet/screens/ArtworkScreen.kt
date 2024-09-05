@@ -143,7 +143,7 @@ fun ArtworkScreen(
                 }
                 .padding(bottom = 10.dp) // Padding to ensure space for LazyColumn
         ) {
-            PrimaryArtworkPhoto(imageUrl = artwork.primaryImage)
+            PrimaryArtworkPhoto(imageUrl = artwork.galleryImages[0])
 
             Box(
                 modifier = Modifier

@@ -7,7 +7,6 @@ import android.location.Geocoder
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,12 +51,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.PermContactCalendar
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -1043,7 +1044,7 @@ fun SearchBar(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AsyncImage(
-                                        model = artwork.primaryImage,
+                                        model = artwork.galleryImages[0],
                                         contentDescription = "",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
@@ -1162,7 +1163,7 @@ fun ProfileArtworkGrid(
             items(artworks.size) { index ->
                 val artwork = artworks[index]
                 AsyncImage(
-                    model = artwork.primaryImage,
+                    model = artwork.galleryImages[0],
                     contentScale = ContentScale.Crop,
                     contentDescription = null,
                     modifier = Modifier
@@ -1330,29 +1331,20 @@ fun ArtworkDescription(description: String) {
 @Composable
 fun UsernameWithDate(username: String, imageUrl: String, user: User?, navController: NavController)
 {
-    val decodedUrl = URLDecoder.decode(imageUrl, StandardCharsets.UTF_8.toString())
-
-    val filename = decodedUrl.substringAfterLast("/").substringBefore("?")
-
-    val timestamp = filename.substringBefore(".").toLongOrNull()
-
-    val date = if (timestamp != null && timestamp > 0) {
-        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-        Instant.ofEpochMilli(timestamp)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-            .format(formatter)
-    } else {
-        "Lost date"
-    }
+    val date = extractDateFromTimestamp(imageUrl, true)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Icon(
+            imageVector = Icons.Filled.PermContactCalendar,
+            contentDescription = "User Tag",
+            tint = Color.LightGray,
+            modifier = Modifier.size(20.dp)
+        )
         Text(
             text = "@$username",
-            style = TextStyle(fontSize = 16.sp, fontFamily = FontFamily.Default, color = ColorPalette.Blue),
+            style = TextStyle(fontSize = 14.sp, fontFamily = FontFamily.Default, color = ColorPalette.Blue, fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .align(Alignment.CenterVertically)
                 .padding(end = 8.dp)
@@ -1361,6 +1353,13 @@ fun UsernameWithDate(username: String, imageUrl: String, user: User?, navControl
                     val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
                     navController.navigate(Routes.profileScreen + "/$encodedUserJson")
                 }
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Filled.CalendarMonth,
+            contentDescription = "Date",
+            tint = Color.LightGray,
+            modifier = Modifier.size(20.dp)
         )
         Text(
             text = date,
@@ -1371,7 +1370,34 @@ fun UsernameWithDate(username: String, imageUrl: String, user: User?, navControl
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+fun extractDateFromTimestamp(timestampString: String, isUrl: Boolean ) : String
+{
+    val timestamp: Long?
+    timestamp = if(isUrl) {
+        val decodedUrl = URLDecoder.decode(timestampString, StandardCharsets.UTF_8.toString())
 
+        val filename = decodedUrl.substringAfterLast("/").substringBefore("?")
+
+        filename.substringBefore(".").toLongOrNull()
+    }
+    else {
+        timestampString.toLongOrNull()
+    }
+
+    val date = if (timestamp != null && timestamp > 0)
+    {
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(formatter)
+    } else {
+        "Lost date"
+    }
+
+    return date
+}
 
 
 
@@ -1548,7 +1574,13 @@ fun TopAppBar(showFiltersIcon: Boolean, filtersOn: Boolean = false, onClick: () 
             Spacer(modifier = Modifier.weight(1f))
 
             if (showFiltersIcon) {
-                FilterBottomSheetButton(onClick = onClick, filtersOn = filtersOn )
+                Box ( ) {
+                    FilterBottomSheetButton(onClick = onClick, filtersOn = filtersOn)
+                    FilterStatusTextBadge(
+                        isOn = filtersOn,
+                        modifier = Modifier.align(Alignment.BottomEnd)
+                    )
+                }
             }
         }
     }

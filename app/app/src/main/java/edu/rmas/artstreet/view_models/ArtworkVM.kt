@@ -66,7 +66,6 @@ class ArtworkVM: ViewModel()
         title: String,
         location: MutableState<LatLng>?,
         description: String,
-        primaryImage: Uri,
         galleryImages: List<Uri>,
     ) = viewModelScope.launch{
         _artworkFlow.value = Resource.Loading
@@ -74,7 +73,6 @@ class ArtworkVM: ViewModel()
             title = title,
             location = location!!.value,
             description = description,
-            primaryImage = primaryImage,
             galleryImages = galleryImages,
         )
         _artworkFlow.value = Resource.Success("Successfully added an artwork location...")

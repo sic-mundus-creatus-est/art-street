@@ -187,7 +187,6 @@ fun AddArtworkScreen(
                             title = title.value,
                             location = location,
                             description = description.value,
-                            primaryImage = selectedPhotos.value[0],
                             galleryImages = selectedPhotos.value,
                         )
                     },

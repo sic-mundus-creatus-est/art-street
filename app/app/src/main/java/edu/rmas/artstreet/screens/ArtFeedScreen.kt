@@ -1,5 +1,7 @@
 package edu.rmas.artstreet.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +53,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ArtFeedScreen(

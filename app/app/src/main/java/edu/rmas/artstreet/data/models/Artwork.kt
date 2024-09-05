@@ -11,6 +11,5 @@ data class Artwork (
     val location: GeoPoint = GeoPoint(0.0, 0.0),
     val description: String = "",
 
-    val primaryImage: String = "",
     val galleryImages: List<String> = emptyList(),
 )
