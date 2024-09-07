@@ -1757,7 +1757,7 @@ fun UserLeaderboardRow(
                         color = ColorPalette.Yellow
                     )
                 )
-                val usernameText = user.username.let { "@$it" } ?: "@username"
+                val usernameText = user.username.let { "@$it" }
                 Text(
                     text = usernameText,
                     style = TextStyle(

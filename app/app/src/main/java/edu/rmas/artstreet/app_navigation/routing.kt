@@ -53,10 +53,10 @@ fun Routing ( authVM: AuthVM, artworkVM: ArtworkVM)
         }
     //-----------------------------------------------------------------------------
     // -[[ TEST SCREEN ]]- // only to check if signin works...
-        composable(Routes.testScreen)
-        {
-            TestScreen(navController = navController, authVM = authVM)
-        }
+//        composable(Routes.testScreen)
+//        {
+//            TestScreen(navController = navController, authVM = authVM)
+//        }
     //-----------------------------------------------------------------------------
     // -[[ MAP SCREEN ]]- (default screen)
         composable(Routes.mapScreen)

@@ -39,11 +39,15 @@ import edu.rmas.artstreet.view_models.AuthVM
 fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
     val signUpFlow = authVM?.signUpFlow?.collectAsState()
 
+    val profileImage = remember { mutableStateOf(Uri.EMPTY) }
+    val fullName = remember { mutableStateOf("") }
+    val username = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
-    val fullName = remember { mutableStateOf("") }
     val phoneNumber = remember { mutableStateOf("") }
-    val profileImage = remember { mutableStateOf(Uri.EMPTY) }
+
+    val isUsernameError =remember { mutableStateOf(false) }
+    val usernameErrorText = remember { mutableStateOf("") }
 
     val isEmailError = remember { mutableStateOf(false) }
     val emailErrorText = remember { mutableStateOf("") }
@@ -62,7 +66,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
     val isLoading = remember { mutableStateOf(false) }
 
     DashedLineBackground {
-        Column(
+        Column (
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -94,6 +98,18 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+            InputFieldLabel(label = "Username")
+
+            Spacer(modifier = Modifier.height(2.dp))
+            InputField(
+                hint = "john.doe",
+                value = username,
+                isEmail = false,
+                isError = isUsernameError,
+                errorText = usernameErrorText
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
             InputFieldLabel(label = "Email Address")
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -112,7 +128,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
             InputField(
                 hint = "+1234567890",
                 value = phoneNumber,
-                isEmail = false,
+                isNumber = true,
                 isError = isPhoneNumberError,
                 errorText = emailErrorText
             )
@@ -159,6 +175,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
                             profileImage = profileImage.value,
                             fullName = fullName.value,
                             email = email.value,
+                            username = username.value,
                             phoneNumber = phoneNumber.value,
                             password = password.value
                         )
@@ -227,7 +244,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
                 is Resource.Success -> {
                     isLoading.value = false
                     LaunchedEffect(Unit) {
-                        navController?.navigate(Routes.testScreen) {
+                        navController?.navigate(Routes.signInScreen) {
                             popUpTo(Routes.signInScreen) {
                                 inclusive = true
                             }

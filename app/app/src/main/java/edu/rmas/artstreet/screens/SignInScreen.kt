@@ -65,7 +65,7 @@ fun SignInScreen ( authVM: AuthVM?, navController: NavController)
             Secondary(secondary_text = "Ready to continue exploring streets full of art?")
 
             Spacer(modifier = Modifier.height(47.dp))
-            InputFieldLabel(label = "Enter your E-mail")
+            InputFieldLabel(label = "Enter your E-mail or Username")
 
             Spacer(modifier = Modifier.height(2.dp))
             InputField(

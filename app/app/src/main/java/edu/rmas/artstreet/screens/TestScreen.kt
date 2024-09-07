@@ -35,7 +35,6 @@ fun TestScreen(
     authVM: AuthVM
 ) {
     val buttonIsEnabled = remember { mutableStateOf(true) }
-    val isLoading = remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
