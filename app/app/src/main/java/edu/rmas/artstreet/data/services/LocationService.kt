@@ -76,10 +76,10 @@ class LocationService : Service()
 
     private fun start ( nearby: Boolean = false )
     {
-        locationClient.LocationUpdates(1000L)
+        locationClient.LocationUpdates(10000L)
             .catch { e -> e.printStackTrace() }
             .onEach { location ->
-                Log.d("Location", "${location.latitude} ${location.longitude}")
+                // Log.d("Location", "${location.latitude} ${location.longitude}")
                 val intent = Intent(ACTION_LOCATION_UPDATE).apply {
                     putExtra(EXTRA_LOCATION_LATITUDE, location.latitude)
                     putExtra(EXTRA_LOCATION_LONGITUDE, location.longitude)
@@ -162,7 +162,7 @@ class LocationService : Service()
             }
     }
 
-    fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
     {//Haversine formula
         val earthRadius = 6371000.0
 
@@ -192,11 +192,11 @@ class LocationService : Service()
 
         val notification = NotificationCompat.Builder(this, notificationChannelId)
             .setContentTitle("Artwork Nearby!")
-            .setContentText("ArtStreet has discovered art close to you!")
+            .setContentText("Tap to discover amazing art close to you.")
             .setSmallIcon(R.drawable.logo)
             .setContentIntent(pendingIntent)
             .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Tap to see it and explore local creativity..."))
+                .bigText("Explore local creativity now! Tap to open the map and find new art around you."))
             .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
