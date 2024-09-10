@@ -76,7 +76,7 @@ class LocationService : Service()
 
     private fun start ( nearby: Boolean = false )
     {
-        locationClient.LocationUpdates(10000L)
+        locationClient.LocationUpdates(1000L)
             .catch { e -> e.printStackTrace() }
             .onEach { location ->
                 // Log.d("Location", "${location.latitude} ${location.longitude}")

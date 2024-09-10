@@ -1,5 +1,6 @@
 package edu.rmas.artstreet.screens
 
+import android.location.Location
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
@@ -95,12 +97,10 @@ import java.nio.charset.StandardCharsets
 fun MapScreen(
     navController: NavController,
     authVM: AuthVM,
-    cameraPosition : CameraPositionState = rememberCameraPositionState(){
+    cameraPosition: CameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(43.3247, 21.9033), 17f)
     },
-    isCameraSet: MutableState<Boolean> = remember {
-        mutableStateOf(false)
-    },
+    isCameraSet: MutableState<Boolean> = remember { mutableStateOf(false) },
     artworkVM: ArtworkVM,
     artworkMarkers: MutableList<Artwork>
 ) {
@@ -131,9 +131,12 @@ fun MapScreen(
 
     val searchInputValue = remember { mutableStateOf("") }
 
+//    val cameraPositionState = rememberCameraPositionState {
+//        position = CameraPosition.fromLatLngZoom(LatLng(43.3247, 21.9033), 17f)
+//    }
+    val currentLocationMarkerState = rememberMarkerState(position = LatLng(43.3247, 21.9033))
 
-
-    ModalBottomSheetLayout (
+    ModalBottomSheetLayout(
         modifier = Modifier.fillMaxSize(),
         sheetState = filterBottomSheetState,
         sheetContent = {
@@ -146,18 +149,16 @@ fun MapScreen(
             )
         },
     ) {
-        Column (
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .height(100.dp),
-        )
-        {
-            ModalNavigationDrawer (
+        ) {
+            ModalNavigationDrawer(
                 drawerState = sidebarMenuDrawerState,
                 gesturesEnabled = gesturesEnabled.value,
                 drawerContent = {
-                    ModalDrawerSheet(drawerContainerColor=ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape)
-                    {
+                    ModalDrawerSheet(drawerContainerColor = ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape) {
                         Box(
                             modifier = Modifier
                                 .background(ColorPalette.BackgroundMainEvenDarker)
@@ -165,22 +166,22 @@ fun MapScreen(
                                 .height(140.dp)
                         ) {
                             if (user.value != null)
-                                MainUserInfo (
+                                MainUserInfo(
                                     imageUrl = user.value!!.profilePicture,
                                     name = user.value!!.fullName,
                                 )
                         }
-                        NavigationDrawerItem (
+                        NavigationDrawerItem(
                             label = { Text(text = "Profile", color = ColorPalette.White) },
                             selected = false,
                             icon = {
-                                Icon (
+                                Icon(
                                     imageVector = Icons.Filled.AccountCircle,
                                     contentDescription = "profile",
                                     tint = ColorPalette.Yellow
                                 )
                             },
-                            colors = NavigationDrawerItemDefaults.colors (
+                            colors = NavigationDrawerItemDefaults.colors(
                                 selectedContainerColor = ColorPalette.BackgroundMainDarker,
                                 unselectedContainerColor = ColorPalette.BackgroundMainDarker
                             ),
@@ -213,7 +214,7 @@ fun MapScreen(
                                 coroutineScope.launch {
                                     sidebarMenuDrawerState.close()
                                     val artworksJson = Gson().toJson(
-                                            artworkMarkers
+                                        artworkMarkers
                                     )
                                     val encodedArtworksJson = URLEncoder.encode(artworksJson, StandardCharsets.UTF_8.toString())
                                     navController.navigate(Routes.artFeedScreen + "/$encodedArtworksJson")
@@ -288,22 +289,20 @@ fun MapScreen(
                         properties = mapProperties.value,
                         uiSettings = mapUISettings.value,
                     ) {
-                        markers.forEach { marker ->
-                            val icon = myPositionIndicator(
-                                context, R.drawable.current_location
-                            )
+                        // Marker for current location
+                        currentUserLocation.value?.let { location ->
+                            currentLocationMarkerState.position = location
+                            val icon = myPositionIndicator(context, R.drawable.current_location)
                             Marker(
-                                state = rememberMarkerState(position = marker),
-                                title = "Current location",
+                                state = currentLocationMarkerState,
+                                title = "Current Location",
                                 icon = icon,
-                                snippet = "",
+                                snippet = ""
                             )
                         }
                         if (!filtersOn) {
                             artworkMarkers.forEach { artwork ->
-                                val icon = myPositionIndicator(
-                                    context, R.drawable.artwork_marker
-                                )
+                                val icon = myPositionIndicator(context, R.drawable.artwork_marker)
                                 ArtworkMarker(
                                     artwork = artwork,
                                     icon = icon,
@@ -326,18 +325,16 @@ fun MapScreen(
                                     )
                                 }
                             }
-
-
                         }
                     }
                     Column {
                         Spacer(modifier = Modifier.height(15.dp))
-                    // -----------------------------------------------------------------------------
-                    // -[[ TOP BAR NAVIGATION ]]-
+                        // -----------------------------------------------------------------------------
+                        // -[[ TOP BAR NAVIGATION ]]-
                         Row {
                             Spacer(modifier = Modifier.width(15.dp))
 
-                            Box (
+                            Box(
                                 modifier = Modifier.background(
                                     ColorPalette.BackgroundMainLighter,
                                     shape = RoundedCornerShape(10.dp))
@@ -346,15 +343,15 @@ fun MapScreen(
                             }
 
                             Spacer(modifier = Modifier.width(5.dp))
-                            SearchBar (
+                            SearchBar(
                                 inputValue = searchInputValue,
-                                artworkData = if(!filtersOn) artworkMarkers else filteredArtworks!!.toMutableList(),
+                                artworkData = if (!filtersOn) artworkMarkers else filteredArtworks!!.toMutableList(),
                                 cameraPositionState = cameraPosition,
                                 navController = navController
                             )
                             Spacer(modifier = Modifier.width(5.dp))
 
-                            Box (
+                            Box(
                                 modifier = Modifier.background(
                                     ColorPalette.BackgroundMainLighter,
                                     shape = RoundedCornerShape(10.dp)
@@ -364,15 +361,15 @@ fun MapScreen(
                                 FilterStatusTextBadge(isOn = filtersOn, modifier = Modifier.align(Alignment.BottomEnd))
                             }
                         }
-                    // -----------------------------------------------------------------------------
+                        // -----------------------------------------------------------------------------
 
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.Bottom
                         ) {
-                    // -----------------------------------------------------------------------------
-                    // -[[ BOTTOM BAR NAVIGATION ]]- (only AddNewArtwork button for now)
+                            // -----------------------------------------------------------------------------
+                            // -[[ BOTTOM BAR NAVIGATION ]]- (only AddNewArtwork button for now)
                             Row {
                                 Box(
                                     modifier = Modifier.background(
@@ -380,13 +377,15 @@ fun MapScreen(
                                         shape = RoundedCornerShape(7.dp)
                                     )
                                 ) {
-                                    AddNewArtworkLocationButton (
-                                        onClick = { if (currentUserLocation.value != null) {
-                                            val location = currentUserLocation.value!!
-                                            navController.navigate(route = "${Routes.addArtworkScreen}/${location.latitude}/${location.longitude}")
-                                        } else {
-                                            Toast.makeText(context, "Turn on location for this option!", Toast.LENGTH_SHORT).show()
-                                        } },
+                                    AddNewArtworkLocationButton(
+                                        onClick = {
+                                            if (currentUserLocation.value != null) {
+                                                val location = currentUserLocation.value!!
+                                                navController.navigate(route = "${Routes.addArtworkScreen}/${location.latitude}/${location.longitude}")
+                                            } else {
+                                                Toast.makeText(context, "Turn on location for this option!", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
                                         currentUserLocation = currentUserLocation
                                     )
                                 }
@@ -394,16 +393,15 @@ fun MapScreen(
                             }
                             Spacer(modifier = Modifier.height(15.dp))
                         }
-                    // -----------------------------------------------------------------------------
+                        // -----------------------------------------------------------------------------
                     }
                 }
             }
         }
-
     }
 
     userDataResource.value.let {
-        when(it){
+        when (it) {
             is Resource.Success -> {
                 user.value = it.result
             }
@@ -429,17 +427,16 @@ fun MapScreen(
         }
     }
 
-    LaunchedEffect(sidebarMenuDrawerState.isOpen) { gesturesEnabled.value = sidebarMenuDrawerState.isOpen }
+    LaunchedEffect(sidebarMenuDrawerState.isOpen) {
+        gesturesEnabled.value = sidebarMenuDrawerState.isOpen
+    }
 
     val receiver = remember {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == LocationService.ACTION_LOCATION_UPDATE) {
-                    val latitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
-                    val longitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
-
+                    val latitude = intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
+                    val longitude = intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
                     currentUserLocation.value = LatLng(latitude, longitude)
                 }
             }
@@ -455,14 +452,32 @@ fun MapScreen(
     }
 
     LaunchedEffect(currentUserLocation.value) {
-        currentUserLocation.value?.let {
-            if (!isCameraSet.value) {
-                cameraPosition.position = CameraPosition.fromLatLngZoom(it, 17f)
-                isCameraSet.value = true
+        currentUserLocation.value?.let { newLocation ->
+            val currentCameraPosition = cameraPosition.position.target
+
+            val movementThreshold = 0.0005
+
+            // checks if the new location is significantly different from the current camera position
+            val distance = FloatArray(1)
+            Location.distanceBetween(
+                currentCameraPosition.latitude, currentCameraPosition.longitude,
+                newLocation.latitude, newLocation.longitude,
+                distance
+            )
+
+            if (distance[0] > movementThreshold) {
+                if (!isCameraSet.value) {
+                    cameraPosition.position = CameraPosition.fromLatLngZoom(newLocation, 17f)
+                    isCameraSet.value = true
+                } else {
+                    cameraPosition.animate(
+                        CameraUpdateFactory.newLatLngZoom(newLocation, 17f),
+                        1000
+                    )
+                }
+                markers.clear()
+                markers.add(newLocation)
             }
-            markers.clear()
-            markers.add(it)
         }
     }
-
 }
