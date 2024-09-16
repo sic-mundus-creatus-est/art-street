@@ -208,7 +208,7 @@ fun ArtworkScreen(
                     Spacer(modifier = Modifier.height(7.dp))
 
                     UsernameWithDate(
-                        username = "user123",
+                        username = user?.username,
                         imageUrl = artwork.galleryImages[0],
                         user = user,
                         navController = navController

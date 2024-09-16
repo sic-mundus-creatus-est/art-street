@@ -43,12 +43,13 @@ fun ArtStreet(authVM: AuthVM, artworkVM: ArtworkVM)
             1
         )
     } else {
-        if(isFollowingServiceEnabled) {
+        if( isFollowingServiceEnabled ) {
             Intent(context, LocationService::class.java).apply {
                 action = LocationService.ACTION_FIND_NEARBY
                 context.startForegroundService(this)
             }
-        }else{
+        }
+        else {
             Intent(context, LocationService::class.java).apply {
                 action = LocationService.ACTION_START
                 context.startForegroundService(this)

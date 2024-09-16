@@ -48,10 +48,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    // Check if the LocationService is running
     val isServiceRunning = isLocationServiceRunning(context)
 
-    // Initialize the switch state based on the running service
     val checked = remember {
         mutableStateOf(isServiceRunning)
     }

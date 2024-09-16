@@ -13,14 +13,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
-class LocationRepo (
+class LocationRepo ( // AKA LOCATION CLIENT♦
     private val context: Context,
     private val client: FusedLocationProviderClient
 ) : ILocationRepo {
     override fun LocationUpdates(interval: Long): Flow<Location>
     {
         return callbackFlow {
-            if(!context.hasLocationPermission()){
+            if(!context.hasLocationPermission())
+            {
                 throw ILocationRepo.LocationException("Location services need to be enabled for this feature!")
             }
 

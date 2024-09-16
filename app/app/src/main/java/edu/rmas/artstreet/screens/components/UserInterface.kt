@@ -880,46 +880,52 @@ fun myPositionIndicator(
 }
 
 @Composable
-fun ArtworkMarker(
+fun ArtworkMarker (
     artwork: Artwork,
     icon: BitmapDescriptor?,
-    artworksMarkers : MutableList<Artwork>,
     navController: NavController,
     notFiltered: Boolean
-){
-    Marker(
-        state = if(notFiltered){
-            rememberMarkerState(
-                position = LatLng(
-                    artwork.location.latitude,
-                    artwork.location.longitude
-                )
+) {
+    val markerState = if (notFiltered) {
+        rememberMarkerState(
+            position = LatLng(
+                artwork.location.latitude,
+                artwork.location.longitude
             )
-        }
-        else{
-            MarkerState(
-                position = LatLng(
-                    artwork.location.latitude,
-                    artwork.location.longitude
-                ))
-        }
-        ,
-        title = artwork.title,
-        icon = icon,
-        snippet = artwork.description,
-        onClick = {
-            val artworkJson = Gson().toJson(artwork)
-            val encodedArtworkJson =
-                URLEncoder.encode(
-                    artworkJson,
-                    StandardCharsets.UTF_8.toString()
-                )
+        )
+    } else {
+        MarkerState(
+            position = LatLng(
+                artwork.location.latitude,
+                artwork.location.longitude
+            )
+        )
+    }
 
-            navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson")
-            true
+    var showInfoWindow by remember { mutableStateOf(false) }
+
+    Marker(
+        state = markerState,
+        title = artwork.title,
+        snippet = if (showInfoWindow) artwork.description else null, // Show description when info window is visible
+        icon = icon,
+        onClick = {
+            if (!showInfoWindow) {
+                // First click: show info window
+                showInfoWindow = true
+                markerState.showInfoWindow()
+            } else {
+                // Second click: navigate to the artwork screen
+                val artworkJson = Gson().toJson(artwork)
+                val encodedArtworkJson = URLEncoder.encode(artworkJson, StandardCharsets.UTF_8.toString())
+                navController.navigate(Routes.artworkScreen + "/$encodedArtworkJson")
+            }
+            true // Consume the click event
         }
     )
 }
+
+
 
 
 
@@ -1329,7 +1335,7 @@ fun ArtworkDescription(description: String) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun UsernameWithDate(username: String, imageUrl: String, user: User?, navController: NavController)
+fun UsernameWithDate(username: String?, imageUrl: String, user: User?, navController: NavController)
 {
     val date = extractDateFromTimestamp(imageUrl, true)
 

@@ -1,10 +1,11 @@
 package edu.rmas.artstreet.screens
 
+import android.Manifest
 import android.location.Location
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -44,17 +45,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -73,7 +74,6 @@ import edu.rmas.artstreet.app_navigation.Routes
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
-import edu.rmas.artstreet.data.services.LocationService
 import edu.rmas.artstreet.screens.components.AddNewArtworkLocationButton
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.ArtworkMarker
@@ -87,6 +87,7 @@ import edu.rmas.artstreet.screens.components.TheDivider
 import edu.rmas.artstreet.screens.components.myPositionIndicator
 import edu.rmas.artstreet.view_models.ArtworkVM
 import edu.rmas.artstreet.view_models.AuthVM
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -94,7 +95,7 @@ import java.nio.charset.StandardCharsets
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun MapScreen(
+fun MapScreen (
     navController: NavController,
     authVM: AuthVM,
     cameraPosition: CameraPositionState = rememberCameraPositionState {
@@ -104,15 +105,17 @@ fun MapScreen(
     artworkVM: ArtworkVM,
     artworkMarkers: MutableList<Artwork>
 ) {
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    authVM.getUserData()
+    LaunchedEffect(Unit) {
+        authVM.getUserData()
+    }
     val userDataResource = authVM.currentUserFlow.collectAsState()
     val user = remember { mutableStateOf<User?>(null) }
     val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
 
-    val markers = remember { mutableStateListOf<LatLng>() }
     val mapProperties = remember { mutableStateOf(MapProperties(mapType = MapType.TERRAIN)) }
     val mapUISettings = remember { mutableStateOf(MapUiSettings(zoomControlsEnabled = false)) }
 
@@ -131,16 +134,18 @@ fun MapScreen(
 
     val searchInputValue = remember { mutableStateOf("") }
 
-//    val cameraPositionState = rememberCameraPositionState {
-//        position = CameraPosition.fromLatLngZoom(LatLng(43.3247, 21.9033), 17f)
-//    }
     val currentLocationMarkerState = rememberMarkerState(position = LatLng(43.3247, 21.9033))
 
-    ModalBottomSheetLayout(
+    val locationManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as LocationManager }
+    val locationListener = rememberUpdatedState(LocationListener { location ->
+        currentUserLocation.value = LatLng(location.latitude, location.longitude)
+    })
+
+    ModalBottomSheetLayout (
         modifier = Modifier.fillMaxSize(),
         sheetState = filterBottomSheetState,
         sheetContent = {
-            FilterScreen(
+            FilterScreen (
                 authVM = authVM,
                 artworkVM = artworkVM,
                 artworks = artworks,
@@ -154,19 +159,19 @@ fun MapScreen(
                 .fillMaxSize()
                 .height(100.dp),
         ) {
-            ModalNavigationDrawer(
+            ModalNavigationDrawer (
                 drawerState = sidebarMenuDrawerState,
                 gesturesEnabled = gesturesEnabled.value,
                 drawerContent = {
                     ModalDrawerSheet(drawerContainerColor = ColorPalette.BackgroundMainDarker, drawerShape = RectangleShape) {
-                        Box(
+                        Box (
                             modifier = Modifier
                                 .background(ColorPalette.BackgroundMainEvenDarker)
                                 .fillMaxWidth()
                                 .height(140.dp)
                         ) {
                             if (user.value != null)
-                                MainUserInfo(
+                                MainUserInfo (
                                     imageUrl = user.value!!.profilePicture,
                                     name = user.value!!.fullName,
                                 )
@@ -293,9 +298,9 @@ fun MapScreen(
                         currentUserLocation.value?.let { location ->
                             currentLocationMarkerState.position = location
                             val icon = myPositionIndicator(context, R.drawable.current_location)
-                            Marker(
+                            Marker (
                                 state = currentLocationMarkerState,
-                                title = "Current Location",
+                                title = "Your Location",
                                 icon = icon,
                                 snippet = ""
                             )
@@ -303,10 +308,9 @@ fun MapScreen(
                         if (!filtersOn) {
                             artworkMarkers.forEach { artwork ->
                                 val icon = myPositionIndicator(context, R.drawable.artwork_marker)
-                                ArtworkMarker(
+                                ArtworkMarker (
                                     artwork = artwork,
                                     icon = icon,
-                                    artworksMarkers = artworkMarkers,
                                     navController = navController,
                                     notFiltered = true
                                 )
@@ -316,10 +320,9 @@ fun MapScreen(
                                 val mutableArtworks = artworks.toMutableList()
                                 mutableArtworks.forEach { artwork ->
                                     val icon = myPositionIndicator(context, R.drawable.artwork_marker)
-                                    ArtworkMarker(
+                                    ArtworkMarker (
                                         artwork = artwork,
                                         icon = icon,
-                                        artworksMarkers = mutableArtworks,
                                         navController = navController,
                                         notFiltered = false
                                     )
@@ -400,6 +403,7 @@ fun MapScreen(
         }
     }
 
+// -------------------------------------------------------------------------------------------------
     userDataResource.value.let {
         when (it) {
             is Resource.Success -> {
@@ -418,7 +422,7 @@ fun MapScreen(
         when (it) {
             is Resource.Success -> {
                 artworks.clear()
-                artworks.addAll(it.result)
+                artworks.addAll( it.result )
             }
 
             is Resource.Loading -> { }
@@ -426,28 +430,47 @@ fun MapScreen(
             null -> { }
         }
     }
+// -------------------------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------------------------
     LaunchedEffect(sidebarMenuDrawerState.isOpen) {
         gesturesEnabled.value = sidebarMenuDrawerState.isOpen
     }
 
-    val receiver = remember {
-        object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == LocationService.ACTION_LOCATION_UPDATE) {
-                    val latitude = intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
-                    val longitude = intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
-                    currentUserLocation.value = LatLng(latitude, longitude)
-                }
+    LaunchedEffect(Unit) {
+        val gpsEnabled = locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER )
+        val networkEnabled = locationManager.isProviderEnabled( LocationManager.NETWORK_PROVIDER )
+
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        {
+            if (gpsEnabled)
+            {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 5f, locationListener.value)
+            }
+            if (networkEnabled)
+            {
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 5f, locationListener.value)
+            }
+        }
+
+        val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+        if (lastKnownLocation != null)
+        {
+            currentUserLocation.value = LatLng(lastKnownLocation.latitude, lastKnownLocation.longitude)
+        }
+        else {
+            val gpsLastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            gpsLastKnownLocation?.let {
+                currentUserLocation.value = LatLng(it.latitude, it.longitude)
             }
         }
     }
 
     DisposableEffect(context) {
-        LocalBroadcastManager.getInstance(context)
-            .registerReceiver(receiver, IntentFilter(LocationService.ACTION_LOCATION_UPDATE))
         onDispose {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                locationManager.removeUpdates(locationListener.value)
+            }
         }
     }
 
@@ -455,9 +478,8 @@ fun MapScreen(
         currentUserLocation.value?.let { newLocation ->
             val currentCameraPosition = cameraPosition.position.target
 
-            val movementThreshold = 0.0005
+            val movementThresholdInMeters = 5f
 
-            // checks if the new location is significantly different from the current camera position
             val distance = FloatArray(1)
             Location.distanceBetween(
                 currentCameraPosition.latitude, currentCameraPosition.longitude,
@@ -465,19 +487,28 @@ fun MapScreen(
                 distance
             )
 
-            if (distance[0] > movementThreshold) {
+            // If the user has moved more than the defined threshold
+            if (distance[0] > movementThresholdInMeters) {
+                val animationDuration = when {
+                    distance[0] > 1000 -> 3000L // Very far, longer duration
+                    distance[0] > 500 -> 2000L  // Medium distance
+                    else -> 1000L               // Close, short duration
+                }
+
                 if (!isCameraSet.value) {
                     cameraPosition.position = CameraPosition.fromLatLngZoom(newLocation, 17f)
                     isCameraSet.value = true
                 } else {
                     cameraPosition.animate(
-                        CameraUpdateFactory.newLatLngZoom(newLocation, 17f),
-                        1000
+                        CameraUpdateFactory.newLatLng(newLocation),
+                        animationDuration.toInt(),
                     )
                 }
-                markers.clear()
-                markers.add(newLocation)
+
+                delay(animationDuration)
             }
         }
     }
+// -------------------------------------------------------------------------------------------------
+
 }

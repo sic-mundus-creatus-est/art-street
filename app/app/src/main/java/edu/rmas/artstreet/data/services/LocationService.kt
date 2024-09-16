@@ -33,19 +33,16 @@ import kotlin.math.sqrt
 class LocationService : Service()
 {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private lateinit var locationClient: LocationRepo
+    private lateinit var locationRepo: LocationRepo
     private val notifiedArtworks = mutableSetOf<String>()
 
-    override fun onBind(intent: Intent?): IBinder?
-    {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate()
     {
         super.onCreate()
         createNotificationChannel()
-        locationClient = LocationRepo (
+        locationRepo = LocationRepo (
             applicationContext,
             LocationServices.getFusedLocationProviderClient(applicationContext)
         )
@@ -76,7 +73,7 @@ class LocationService : Service()
 
     private fun start ( nearby: Boolean = false )
     {
-        locationClient.LocationUpdates(1000L)
+        locationRepo.LocationUpdates(10000L)
             .catch { e -> e.printStackTrace() }
             .onEach { location ->
                 // Log.d("Location", "${location.latitude} ${location.longitude}")
@@ -163,7 +160,7 @@ class LocationService : Service()
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double
-    {//Haversine formula
+    {// Haversine formula
         val earthRadius = 6371000.0
 
         val dLat = Math.toRadians(lat2 - lat1)
