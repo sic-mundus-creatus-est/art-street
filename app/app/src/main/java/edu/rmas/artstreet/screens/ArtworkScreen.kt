@@ -1,9 +1,10 @@
 package edu.rmas.artstreet.screens
 
-import android.content.BroadcastReceiver
+import android.Manifest
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -39,13 +40,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.LatLng
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.Interaction
 import edu.rmas.artstreet.data.repositories.Resource
-import edu.rmas.artstreet.data.services.LocationService
 import edu.rmas.artstreet.screens.components.ArtworkDescription
 import edu.rmas.artstreet.screens.components.Header
 import edu.rmas.artstreet.screens.components.LocationTag
@@ -84,6 +84,11 @@ fun ArtworkScreen(
     }
 
     val currentUserLocation = remember { mutableStateOf<LatLng?>(null) }
+    val locationManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as LocationManager }
+    val locationListener = rememberUpdatedState(LocationListener { location ->
+        currentUserLocation.value = LatLng(location.latitude, location.longitude)
+    })
+
     val isLoading = remember { mutableStateOf(false) }
 
     val interactionsResource by artworkVM.artworkInteractions.collectAsState()
@@ -92,30 +97,6 @@ fun ArtworkScreen(
             interaction.visitedByUser
         } ?: ""
     )
-
-    val receiver = remember {
-        object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == LocationService.ACTION_LOCATION_UPDATE) {
-                    val latitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LATITUDE, 0.0)
-                    val longitude =
-                        intent.getDoubleExtra(LocationService.EXTRA_LOCATION_LONGITUDE, 0.0)
-
-                    currentUserLocation.value = LatLng(latitude, longitude)
-                }
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        val intentFilter = IntentFilter(LocationService.ACTION_LOCATION_UPDATE)
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, intentFilter)
-
-        onDispose {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
-        }
-    }
 
     val isNearby = currentUserLocation.value?.let { userLocation ->
         val distance = calculateDistance(
@@ -272,6 +253,51 @@ fun ArtworkScreen(
             is Resource.Loading -> { }
             is Resource.Failure -> { }
             null -> { }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        {
+            val gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            val networkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+            when {
+                gpsEnabled -> {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        1000,
+                        5f,
+                        locationListener.value
+                    )
+                }
+                networkEnabled -> {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        1000,
+                        5f,
+                        locationListener.value
+                    )
+                }
+                else -> {
+                    val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+
+                    lastKnownLocation?.let {
+                        currentUserLocation.value = LatLng(it.latitude, it.longitude)
+                    } ?: Log.d("LocationDebug", "No last known location available")
+                }
+            }
+        } else {
+            Log.d("LocationDebug", "Location permission not granted")
+        }
+    }
+
+    DisposableEffect(context) {
+        onDispose {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                locationManager.removeUpdates(locationListener.value)
+            }
         }
     }
 }

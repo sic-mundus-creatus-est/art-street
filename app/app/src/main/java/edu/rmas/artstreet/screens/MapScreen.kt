@@ -3,10 +3,12 @@ package edu.rmas.artstreet.screens
 import android.Manifest
 import android.location.Location
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -19,24 +21,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArtTrack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -51,9 +63,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
@@ -74,6 +90,7 @@ import edu.rmas.artstreet.app_navigation.Routes
 import edu.rmas.artstreet.data.models.Artwork
 import edu.rmas.artstreet.data.models.User
 import edu.rmas.artstreet.data.repositories.Resource
+import edu.rmas.artstreet.data.services.LocationService
 import edu.rmas.artstreet.screens.components.AddNewArtworkLocationButton
 import edu.rmas.artstreet.screens.components.ColorPalette
 import edu.rmas.artstreet.screens.components.ArtworkMarker
@@ -138,8 +155,15 @@ fun MapScreen (
 
     val locationManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as LocationManager }
     val locationListener = rememberUpdatedState(LocationListener { location ->
+        Log.d("LocationDebug", "Location updated: Latitude = ${location.latitude}, Longitude = ${location.longitude}")
         currentUserLocation.value = LatLng(location.latitude, location.longitude)
     })
+
+    val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val isServiceRunning = isLocationServiceRunning(context)
+    val nearbyArtworksOn = remember {
+        mutableStateOf(isServiceRunning)
+    }
 
     ModalBottomSheetLayout (
         modifier = Modifier.fillMaxSize(),
@@ -364,20 +388,103 @@ fun MapScreen (
                                 FilterStatusTextBadge(isOn = filtersOn, modifier = Modifier.align(Alignment.BottomEnd))
                             }
                         }
+
                         // -----------------------------------------------------------------------------
 
                         Column(
                             modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.Bottom
                         ) {
                             // -----------------------------------------------------------------------------
-                            // -[[ BOTTOM BAR NAVIGATION ]]- (only AddNewArtwork button for now)
+                            // -[[ BOTTOM BAR NAVIGATION ]]-
+                            Row(
+                                modifier = Modifier
+                                    .wrapContentSize()
+                                    .padding(end = 19.dp, bottom = 4.dp)
+                            ) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                IconButton(
+                                    onClick = {
+                                        if (currentUserLocation.value != null) {
+                                            coroutineScope.launch {
+                                                CenterOnTheLocation(
+                                                    currentUserLocation = currentUserLocation.value,
+                                                    cameraPositionState = cameraPosition,
+                                                    movementThresholdInMeters = 5f
+                                                )
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .then(if (currentUserLocation.value == null) Modifier.alpha(0.5f) else Modifier) // semi-transparent if disabled
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MyLocation,
+                                        contentDescription = "Center on my location",
+                                        tint = if (currentUserLocation.value == null) ColorPalette.LightGray else ColorPalette.Yellow,
+                                        modifier = Modifier.size(44.dp)
+                                    )
+                                }
+
+                            }
+
                             Row {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Switch(
+                                        checked = nearbyArtworksOn.value,
+                                        onCheckedChange = {
+                                            nearbyArtworksOn.value = it
+                                            if (it) {
+                                                Intent(context, LocationService::class.java).apply {
+                                                    action = LocationService.ACTION_FIND_NEARBY
+                                                    context.startForegroundService(this)
+                                                }
+                                                with(sharedPreferences.edit()) {
+                                                    putBoolean("following_location", true)
+                                                    apply()
+                                                }
+                                            } else {
+                                                Intent(context, LocationService::class.java).apply {
+                                                    action = LocationService.ACTION_STOP
+                                                    context.stopService(this)
+                                                }
+                                                with(sharedPreferences.edit()) {
+                                                    putBoolean("following_location", false)
+                                                    apply()
+                                                }
+                                            }
+                                        },
+                                        thumbContent = if (nearbyArtworksOn.value) {
+                                            {
+                                                androidx.compose.material.Icon(
+                                                    imageVector = Icons.Filled.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp),
+                                                )
+                                            }
+                                        } else {
+                                            null
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = ColorPalette.Yellow,
+                                            checkedTrackColor = ColorPalette.BackgroundMainLighter,
+                                            uncheckedThumbColor = ColorPalette.Yellow,
+                                            uncheckedTrackColor = Color.Transparent,
+                                        ),
+                                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, start = 8.dp, end = 1.dp)
+                                    )
+
+                                    ComicBubble()
+                                }
+
+                                Spacer(modifier = Modifier.weight(1f))
                                 Box(
                                     modifier = Modifier.background(
                                         ColorPalette.BackgroundMainLighter,
-                                        shape = RoundedCornerShape(7.dp)
+                                        shape = RoundedCornerShape(7.dp),
                                     )
                                 ) {
                                     AddNewArtworkLocationButton(
@@ -438,31 +545,39 @@ fun MapScreen (
     }
 
     LaunchedEffect(Unit) {
-        val gpsEnabled = locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER )
-        val networkEnabled = locationManager.isProviderEnabled( LocationManager.NETWORK_PROVIDER )
-
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
         {
-            if (gpsEnabled)
-            {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 5f, locationListener.value)
-            }
-            if (networkEnabled)
-            {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 5f, locationListener.value)
-            }
-        }
+            val gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            val networkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
-        val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-        if (lastKnownLocation != null)
-        {
-            currentUserLocation.value = LatLng(lastKnownLocation.latitude, lastKnownLocation.longitude)
-        }
-        else {
-            val gpsLastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            gpsLastKnownLocation?.let {
-                currentUserLocation.value = LatLng(it.latitude, it.longitude)
+            when {
+                gpsEnabled -> {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        1000,
+                        5f,
+                        locationListener.value
+                    )
+                }
+                networkEnabled -> {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        1000,
+                        5f,
+                        locationListener.value
+                    )
+                }
+                else -> {
+                    val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+
+                    lastKnownLocation?.let {
+                        currentUserLocation.value = LatLng(it.latitude, it.longitude)
+                    } ?: Log.d("LocationDebug", "No last known location available")
+                }
             }
+        } else {
+            Log.d("LocationDebug", "Location permission not granted")
         }
     }
 
@@ -474,41 +589,109 @@ fun MapScreen (
         }
     }
 
-    LaunchedEffect(currentUserLocation.value) {
-        currentUserLocation.value?.let { newLocation ->
-            val currentCameraPosition = cameraPosition.position.target
 
-            val movementThresholdInMeters = 5f
-
-            val distance = FloatArray(1)
-            Location.distanceBetween(
-                currentCameraPosition.latitude, currentCameraPosition.longitude,
-                newLocation.latitude, newLocation.longitude,
-                distance
-            )
-
-            // If the user has moved more than the defined threshold
-            if (distance[0] > movementThresholdInMeters) {
-                val animationDuration = when {
-                    distance[0] > 1000 -> 3000L // Very far, longer duration
-                    distance[0] > 500 -> 2000L  // Medium distance
-                    else -> 1000L               // Close, short duration
-                }
-
-                if (!isCameraSet.value) {
-                    cameraPosition.position = CameraPosition.fromLatLngZoom(newLocation, 17f)
-                    isCameraSet.value = true
-                } else {
-                    cameraPosition.animate(
-                        CameraUpdateFactory.newLatLng(newLocation),
-                        animationDuration.toInt(),
-                    )
-                }
-
-                delay(animationDuration)
+    LaunchedEffect(currentUserLocation.value, isCameraSet.value) {
+        if (!isCameraSet.value && currentUserLocation.value != null) {
+            currentUserLocation.value?.let { newLocation ->
+                cameraPosition.position = CameraPosition.fromLatLngZoom(
+                    LatLng(newLocation.latitude, newLocation.longitude), 17f
+                )
+                isCameraSet.value = true
             }
         }
     }
+
+
+
 // -------------------------------------------------------------------------------------------------
 
+}
+
+@Composable
+fun ComicBubble() {
+    val isBubbleVisible = remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier.wrapContentSize()
+    ) {
+        if (isBubbleVisible.value) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .background(
+                        color = ColorPalette.BackgroundMainLighter,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(8.dp)
+                    .padding(bottom = 8.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Nearby Artworks\nNotifications",
+                        style = MaterialTheme.typography.body2.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Serif
+                        ),
+                        color = ColorPalette.Yellow
+                    )
+                }
+            }
+        }
+
+        IconButton(
+            onClick = { isBubbleVisible.value = !isBubbleVisible.value },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+        ) {
+            Icon(
+                imageVector = if (!isBubbleVisible.value) Icons.Default.Help else Icons.Default.Close,
+                contentDescription = "Help Icon",
+                tint = ColorPalette.Yellow
+            )
+        }
+
+    }
+}
+
+
+suspend fun CenterOnTheLocation(
+    currentUserLocation: LatLng?,
+    cameraPositionState: CameraPositionState,
+    movementThresholdInMeters: Float = 5f
+) {
+    currentUserLocation?.let { newLocation ->
+        val currentCameraPosition = cameraPositionState.position.target
+
+        val distance = FloatArray(1)
+        Location.distanceBetween(
+            currentCameraPosition.latitude, currentCameraPosition.longitude,
+            newLocation.latitude, newLocation.longitude,
+            distance
+        )
+
+        // If the user has moved more than the threshold
+        if (distance[0] > movementThresholdInMeters) {
+            val animationDuration = when {
+                distance[0] > 1000 -> 3000L // Very far, longer duration
+                distance[0] > 500 -> 2000L  // Medium distance
+                else -> 1000L               // Close, short duration
+            }
+
+            try {
+                val newCameraPosition = CameraPosition.Builder()
+                    .target(LatLng(newLocation.latitude, newLocation.longitude))
+                    .zoom(17f)
+                    .build()
+
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(newCameraPosition),
+                    animationDuration.toInt()
+                )
+            } catch (e: Exception) {
+                Log.e("MapError", "Failed to update camera position: ${e.localizedMessage}")
+            }
+
+            delay(animationDuration)
+        }
+    }
 }

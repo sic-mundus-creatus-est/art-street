@@ -181,6 +181,10 @@ fun AddArtworkScreen(
             ) {
                 PostButton(
                     onClick = {
+                        if (title.value.isBlank() || description.value.isBlank() || selectedPhotos.value.isEmpty()) {
+                            Toast.makeText(context, "Please fill in all fields.", Toast.LENGTH_SHORT).show()
+                            return@PostButton
+                        }
                         isAdded.value = true
                         buttonIsLoading.value = true
                         artworkVM?.saveArtworkData(
@@ -228,16 +232,3 @@ fun AddArtworkScreen(
         }
     }
 }
-
-//@Preview(showBackground = true, device = Devices.PIXEL_4)
-//@Composable
-//fun PreviewAddArtworkScreen() {
-//    val mockLocation = remember {mutableStateOf(LatLng(37.7749, -122.4194))  } // Mock location (San Francisco)
-//    val mockNavController = rememberNavController()
-//
-//    AddArtworkScreen(
-//        artworkVM = null,
-//        location = mockLocation,
-//        navController = mockNavController
-//    )
-//}

@@ -1,6 +1,7 @@
 package edu.rmas.artstreet.screens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import edu.rmas.artstreet.app_navigation.Routes
@@ -29,12 +31,14 @@ import edu.rmas.artstreet.screens.components.Secondary
 import edu.rmas.artstreet.screens.components.Header
 import edu.rmas.artstreet.screens.components.InputFieldLabel
 import edu.rmas.artstreet.screens.components.CallToActionText
-import edu.rmas.artstreet.screens.components.customErrorContainer
+import edu.rmas.artstreet.screens.components.CustomErrorContainer
 import edu.rmas.artstreet.view_models.AuthVM
 
 @Composable
 fun SignInScreen ( authVM: AuthVM?, navController: NavController)
 {
+    val context = LocalContext.current
+
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
@@ -87,13 +91,19 @@ fun SignInScreen ( authVM: AuthVM?, navController: NavController)
                 errorText = passwordErrorText
             )
 
-            if (isError.value) customErrorContainer(errorText = "Oops! Invalid credentials, please try again.")
+            if (isError.value) CustomErrorContainer(errorText = "Oops! Invalid credentials, please try again.")
             Spacer(modifier = Modifier.height(24.dp))
             SignUpInButton(
                 onClick = {
                     isEmailError.value = false
                     isPasswordError.value = false
                     isError.value = false
+
+                    if (email.value.isBlank() || password.value.isBlank()) {
+                        Toast.makeText(context, "Please enter both email/username and password.", Toast.LENGTH_SHORT).show()
+                        return@SignUpInButton
+                    }
+
                     isLoading.value = true
                     authVM?.signIn(email.value, password.value)
                 },

@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,7 +91,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                ColorPalette.White,
+                                ColorPalette.BackgroundMainDarker,
                                 RoundedCornerShape(5.dp)
                             )
                             .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -101,7 +102,9 @@ fun SettingsScreen(
                             text = "Nearby Artworks",
                             style = TextStyle(
                                 fontSize = 16.sp,
-                                color = ColorPalette.Black
+                                color = ColorPalette.White,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Serif
                             )
                         )
                         Switch(
@@ -141,9 +144,9 @@ fun SettingsScreen(
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = ColorPalette.Yellow,
-                                checkedTrackColor = ColorPalette.BackgroundMainLighter,
-                                uncheckedThumbColor = ColorPalette.Black,
-                                uncheckedTrackColor = ColorPalette.White,
+                                checkedTrackColor = ColorPalette.BackgroundMainEvenDarker,
+                                uncheckedThumbColor = ColorPalette.BackgroundMainEvenDarker,
+                                uncheckedTrackColor = ColorPalette.BackgroundMainLighter,
                             )
                         )
                     }
@@ -155,7 +158,7 @@ fun SettingsScreen(
 
 // Helper function to check if the LocationService is running
 @RequiresApi(Build.VERSION_CODES.O)
-private fun isLocationServiceRunning(context: Context): Boolean
+public fun isLocationServiceRunning(context: Context): Boolean
 {
     val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     for (service in activityManager.getRunningServices(Int.MAX_VALUE))

@@ -425,7 +425,7 @@ fun CallToActionText(
 }
 
 @Composable
-fun UploadIcon(
+fun ProfilePictureUploadField(
     selectedImageUri: MutableState<Uri?>,
     isError: MutableState<Boolean>
 
@@ -457,7 +457,7 @@ fun UploadIcon(
                             Color.Transparent
                         )
                     )
-                    .clip(RoundedCornerShape(70.dp)) // 50% border radius
+                    .clip(RoundedCornerShape(4.dp))
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -480,7 +480,7 @@ fun UploadIcon(
                                 Color.Transparent
                             )
                         )
-                        .clip(RoundedCornerShape(70.dp)) // 50% border radius
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
@@ -496,7 +496,7 @@ fun UploadIcon(
                     contentDescription = null,
                     modifier = Modifier
                         .size(140.dp)
-                        .clip(RoundedCornerShape(70.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
@@ -513,7 +513,7 @@ fun UploadIcon(
 }
 
 @Composable
-fun customErrorContainer(
+fun CustomErrorContainer(
     errorText: String
 ){
     Box(modifier = Modifier

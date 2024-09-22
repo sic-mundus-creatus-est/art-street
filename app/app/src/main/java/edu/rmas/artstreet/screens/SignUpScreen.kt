@@ -2,6 +2,7 @@ package edu.rmas.artstreet.screens
 
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import edu.rmas.artstreet.app_navigation.Routes
@@ -31,13 +33,15 @@ import edu.rmas.artstreet.screens.components.DashedLineBackground
 import edu.rmas.artstreet.screens.components.Secondary
 import edu.rmas.artstreet.screens.components.Header
 import edu.rmas.artstreet.screens.components.InputFieldLabel
-import edu.rmas.artstreet.screens.components.UploadIcon
+import edu.rmas.artstreet.screens.components.ProfilePictureUploadField
 import edu.rmas.artstreet.screens.components.CallToActionText
 import edu.rmas.artstreet.view_models.AuthVM
 
 @Composable
 fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
     val signUpFlow = authVM?.signUpFlow?.collectAsState()
+
+    val context = LocalContext.current
 
     val profileImage = remember { mutableStateOf(Uri.EMPTY) }
     val fullName = remember { mutableStateOf("") }
@@ -83,7 +87,7 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
             InputFieldLabel(label = "Profile Picture")
 
             Spacer(modifier = Modifier.height(2.dp))
-            UploadIcon(profileImage, isImageError)
+            ProfilePictureUploadField(profileImage, isImageError)
 
             Spacer(modifier = Modifier.height(16.dp))
             InputFieldLabel(label = "Full Name")
@@ -155,30 +159,72 @@ fun SignUpScreen(authVM: AuthVM?, navController: NavController?) {
                     isError.value = false
                     isLoading.value = true
 
-                    if (profileImage.value == Uri.EMPTY) {
-                        isImageError.value = true
-                        isLoading.value = false
-                    } else if (fullName.value.isEmpty()) {
-                        isFullNameError.value = true
-                        isLoading.value = false
-                    } else if (email.value.isEmpty()) {
-                        isEmailError.value = true
-                        isLoading.value = false
-                    } else if (phoneNumber.value.isEmpty()) {
-                        isPhoneNumberError.value = true
-                        isLoading.value = false
-                    } else if (password.value.isEmpty()) {
-                        isPasswordError.value = true
-                        isLoading.value = false
-                    } else {
-                        authVM?.signUp(
-                            profileImage = profileImage.value,
-                            fullName = fullName.value,
-                            email = email.value,
-                            username = username.value,
-                            phoneNumber = phoneNumber.value,
-                            password = password.value
-                        )
+                    // Validation checks
+                    when {
+                        profileImage.value == Uri.EMPTY -> {
+                            isImageError.value = true
+                            Toast.makeText(
+                                context,
+                                "Please upload a profile picture.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isLoading.value = false
+                        }
+
+                        fullName.value.isEmpty() -> {
+                            isFullNameError.value = true
+                            Toast.makeText(
+                                context,
+                                "Full name cannot be empty.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isLoading.value = false
+                        }
+
+                        username.value.isEmpty() -> {
+                            isUsernameError.value = true
+                            Toast.makeText(
+                                context,
+                                "Username cannot be empty.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isLoading.value = false
+                        }
+
+                        email.value.isEmpty() -> {
+                            isEmailError.value = true
+                            Toast.makeText(context, "Email cannot be empty.", Toast.LENGTH_SHORT)
+                                .show()
+                            isLoading.value = false
+                        }
+
+                        phoneNumber.value.isEmpty() -> {
+                            isPhoneNumberError.value = true
+                            Toast.makeText(
+                                context,
+                                "Phone number cannot be empty.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isLoading.value = false
+                        }
+
+                        password.value.isEmpty() -> {
+                            isPasswordError.value = true
+                            Toast.makeText(context, "Password cannot be empty.", Toast.LENGTH_SHORT)
+                                .show()
+                            isLoading.value = false
+                        }
+
+                        else -> {
+                            authVM?.signUp(
+                                profileImage = profileImage.value,
+                                fullName = fullName.value,
+                                email = email.value,
+                                username = username.value,
+                                phoneNumber = phoneNumber.value,
+                                password = password.value
+                            )
+                        }
                     }
                 },
                 text = "Sign Up",

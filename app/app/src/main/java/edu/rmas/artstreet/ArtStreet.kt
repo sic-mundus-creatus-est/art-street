@@ -23,8 +23,6 @@ import edu.rmas.artstreet.view_models.ArtworkVM
 fun ArtStreet(authVM: AuthVM, artworkVM: ArtworkVM)
 {
     val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val isFollowingServiceEnabled = sharedPreferences.getBoolean("following_location", true)
 
     if (ActivityCompat.checkSelfPermission(
             context,
@@ -42,20 +40,6 @@ fun ArtStreet(authVM: AuthVM, artworkVM: ArtworkVM)
             ),
             1
         )
-    } else {
-        if( isFollowingServiceEnabled ) {
-            Intent(context, LocationService::class.java).apply {
-                action = LocationService.ACTION_FIND_NEARBY
-                context.startForegroundService(this)
-            }
-        }
-        else {
-            Intent(context, LocationService::class.java).apply {
-                action = LocationService.ACTION_START
-                context.startForegroundService(this)
-            }
-        }
-
     }
 
     Surface(modifier = Modifier.fillMaxSize()){
