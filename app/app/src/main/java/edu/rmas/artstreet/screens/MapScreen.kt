@@ -198,6 +198,7 @@ fun MapScreen (
                                 MainUserInfo (
                                     imageUrl = user.value!!.profilePicture,
                                     name = user.value!!.fullName,
+                                    username = user.value!!.username
                                 )
                         }
                         NavigationDrawerItem(
@@ -302,6 +303,14 @@ fun MapScreen (
                                     isEnabled = btnIsEnabled,
                                     isLoading = btnIsLoading,
                                     onClick = {
+                                        Intent(context, LocationService::class.java).apply {
+                                            action = LocationService.ACTION_STOP
+                                            context.stopService(this)
+                                        }
+                                        with(sharedPreferences.edit()) {
+                                            putBoolean("following_location", false)
+                                            apply()
+                                        }
                                         authVM.signOut()
                                         navController.navigate(Routes.signInScreen)
                                     },

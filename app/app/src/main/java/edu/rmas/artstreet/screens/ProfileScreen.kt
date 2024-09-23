@@ -66,7 +66,7 @@ fun ProfileScreen(
                     .background(ColorPalette.BackgroundMainDarker),
                 contentAlignment = Alignment.CenterStart
             ) {
-                MainUserInfo( imageUrl = user.profilePicture, name = user.fullName.replace("+", " "), phoneNumber = user.phoneNumber )
+                MainUserInfo( imageUrl = user.profilePicture, name = user.fullName.replace("+", " "), phoneNumber = user.phoneNumber, username = user.username )
             }
 
             TheDivider(thickness = 1.dp, color = ColorPalette.LightGray)

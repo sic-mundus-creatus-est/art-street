@@ -831,7 +831,7 @@ fun MainUserInfo(
                 )
                 Text(
                     modifier = Modifier.padding(top = 2.dp),
-                    text = username ?: "@username",
+                    text = "@" + (username ?: "username"),
                     color = ColorPalette.LightGray,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal
